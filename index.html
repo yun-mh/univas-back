@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chat App</title>
+
+  <body>
+    <div>
+      <div>
+        <h1>ルーム作成</h1>
+        <label>
+          <p>title</p>
+          <input type="text" id="title">
+        </label>
+        <label>
+          <p>username</p>
+          <input type="text" id="username">
+        </label>
+        <label>
+          <p>ip address</p>
+          <input type="text" id="ipaddress">
+        </label>
+        <label>
+          <p>language</p>
+          <input type="text" id="language">
+        </label>
+        <label>
+          <p>room id</p>
+          <input type="text" id="roomId" readonly>
+        </label>
+      </br>
+        <input type="button" value="create" onclick="createRoom()"> 
+      </div>
+      <br />
+      <input type="button" value="leave" onclick="leaveRoom()">
+      <input type="button" value="terminate" onclick="terminateRoom()">
+      <input type="button" value="test" onclick="test()">
+    </div>
+    <div>
+      <h1>ルーム参加</h1>
+      <label>
+        <p>username</p>
+        <input type="text" id="joinUsername">
+      </label>
+      <label>
+        <p>room id</p>
+        <input type="text" id="joinRoomId">
+      </label>
+      <label>
+        <p>ip address</p>
+        <input type="text" id="joinIpaddress">
+      </label>
+      <label>
+        <p>language</p>
+        <input type="text" id="joinLanguage">
+      </label>
+    </br>
+      <input type="button" value="join" onclick="joinRoom()"> 
+    </div>
+    <br />
+    </div>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+  </body>
+
+  <script>
+    const socket = io.connect("http://localhost:3000");	
+    function createRoom(){
+		var title = document.getElementById("title").value;
+		var username = document.getElementById("username").value;
+		var ipaddress = document.getElementById("ipaddress").value;
+		var language = document.getElementById("language").value;
+		
+    socket.emit("create-room", ({title, username, ipaddress, language}), (response)=>{
+			document.getElementById("roomId").value = response.roomId;
+		});
+	}
+
+  function test(){
+    socket.emit("test", "abc");
+  }
+	
+	function leaveRoom(){
+		var ipaddress = document.getElementById("ipaddress").value
+		socket.emit("leave-room", ({ipaddress: ipaddress}), (respones)=>{
+		});
+	}
+	function terminateRoom(){
+		var roomId = document.getElementById("roomId").value;
+		socket.emit("terminate-room", ({roomId: roomId}), (respones)=>{
+		});
+	}
+  function joinRoom(){
+		var username = document.getElementById("joinUsername").value;
+		var roomId = document.getElementById("joinRoomId").value;
+		var ipaddress = document.getElementById("joinIpaddress").value;
+		var language = document.getElementById("joinLanguage").value;
+
+    socket.emit("join-room", ({username, roomid, ipaddress, language}), (response)=>{
+      //console.log(response.)
+		});
+  }
+	
+    
+ </script>
+  
+</html>
