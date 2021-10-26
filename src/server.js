@@ -1,5 +1,5 @@
 import http from "http";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import express from "express";
 
 const app = express();
@@ -13,14 +13,11 @@ const wsServer = new Server(httpServer, {
   },
 });
 
-let rooms = [];
-let userList = [];
-let users = [];
-
+// ルームIDの生成関数
 function generateId(length) {
-  var result = "";
-  var characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  var charactersLength = characters.length;
+  let result = "";
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const charactersLength = characters.length;
 
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -34,65 +31,34 @@ function emitError(socket, target, errorMsg) {
   socket.to(target).emit("error", { errorMsg });
 }
 
+let rooms = [];
+let users = [];
+
 // 開発サーバの駆動は「npm run dev」で！
 // 下のブロックから機能実装！
 wsServer.on("connection", (socket) => {
-  // アクセシビリティ更新(S -> B)
-  socket.on(
-    "change-accessibility",
-    ({ fontSize_per, fontColor, ipaddress }) => {
-      // 本体の識別値をusers配列の中からfor文使って取得し、そのデータから該当のsocketIdを取得
-      // アクセシビリティ更新通知(B -> R)
-      try {
-        socket
-          .to(ipaddress)
-          .emit("change-accessibility-effect", { fontSize_per, fontColor });
-      } catch (e) {
-        emitError(socket, ipaddress, "エラーが発生しました。");
-      }
-    }
-  );
-
-  // 議題変更(S -> B)
-  socket.on("updated-title", ({ roomId, title }) => {
-    // データ架空の必要があれば処理して
-    // 議題変更通知(B -> R)
-    try {
-      socket.to(roomId).emit("updated-title-effect", { title });
-    } catch (e) {
-      emitError(socket, ipaddress, "エラーが発生しました。");
-    }
-  });
-
-  // モード切替(S -> B)
-  socket.on("change-mode", ({ macaddress, mode }) => {
-    // 本体の識別値を架空・処理
-    // モード切替通知(B -> R)
-    socket.to(macaddress).emit("change-mode-effect", { mode });
-  });
-
-  socket.on("test", (msg) => {
-    // const clients = wsServer.sockets.adapter.rooms.get('abcde');
-  });
-
+  // ルーム情報取得
   socket.on("get-room", (args, callback) => {
     const currentRoom = rooms.filter((item) => (item.roomId = args.roomId));
     const title = currentRoom.title;
 
-    const currentRoomUsers = userList.filter(
+    const currentRoomUsers = users.filter(
       (item) => (item.roomId = args.roomId)
     );
-    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+
+    const currentRoomUsersList = currentRoomUsers.map(function (item) {
       return item["username"];
     });
+
     callback({
-      userList: currentRoomUsersList,
       title: title,
+      userList: currentRoomUsersList,
     });
   });
 
+  // ルーム作成
   socket.on("create-room", (args, callback) => {
-    let roomId = generateId(5);
+    const roomId = generateId(5);
 
     rooms.push({
       title: args.title,
@@ -102,7 +68,7 @@ wsServer.on("connection", (socket) => {
       roomId: roomId,
     });
 
-    userList.push({
+    users.push({
       socketId: socket.id,
       ipaddress: args.ipaddress,
       roomId: roomId,
@@ -117,11 +83,12 @@ wsServer.on("connection", (socket) => {
     });
   });
 
+  // ルーム退出
   socket.on("leave-room", (args, callback) => {
-    let user = userList.find((item) => item.ipaddress === args.ipaddress);
+    let user = users.find((item) => item.ipaddress === args.ipaddress);
     socket.leave(user.roomId);
 
-    const removeIndex = userList.findIndex(
+    const removeIndex = users.findIndex(
       (item) => item.ipaddress === args.ipaddress
     );
     rooms.splice(removeIndex, 1);
@@ -129,13 +96,14 @@ wsServer.on("connection", (socket) => {
     callback();
   });
 
+  // ルーム解散
   socket.on("terminate-room", (args) => {
-    const users = userList.filter((item) => (item.roomId = args.roomId));
+    const users = users.filter((item) => (item.roomId = args.roomId));
 
     wsServer.disconnectSockets(args.roomId);
 
     for (let i = 0; i < users.length; i++) {
-      const removeIndex = userList.findIndex(
+      const removeIndex = users.findIndex(
         (item) => item.socketId === users[i].socketId
       );
       rooms.splice(removeIndex, 1);
@@ -143,6 +111,56 @@ wsServer.on("connection", (socket) => {
 
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
+  });
+
+  // アクセシビリティ更新
+  socket.on(
+    "change-accessibility",
+    ({ fontSize_per, fontColor, ipaddress }) => {
+      // 引数のIPアドレスでユーザを識別
+      const target = users.find((user) => user.ipaddress === ipaddress);
+
+      // アクセシビリティ更新通知
+      if (target !== undefined) {
+        try {
+          socket
+            .to(target.id)
+            .emit("change-accessibility-effect", { fontSize_per, fontColor });
+        } catch (e) {
+          emitError(socket, target.id, "エラーが発生しました。");
+        }
+      }
+    }
+  );
+
+  // 議題変更
+  socket.on("updated-title", ({ roomId, title }) => {
+    // ルームIDからルームを取得
+    const targetRoom = rooms.find((room) => room.roomId === roomId);
+
+    // 議題変更通知
+    if (targetRoom !== undefined) {
+      try {
+        socket.to(targetRoom.roomId).emit("updated-title-effect", { title });
+      } catch (e) {
+        emitError(socket, targetRoom.roomId, "エラーが発生しました。");
+      }
+    }
+  });
+
+  // モード切替
+  socket.on("change-mode", ({ ipaddress, mode }) => {
+    // 引数のIPアドレスでユーザを識別
+    const target = users.find((user) => user.ipaddress === ipaddress);
+
+    // モード切替通知
+    if (target !== undefined) {
+      try {
+        socket.to(target.id).emit("change-mode-effect", { mode });
+      } catch (e) {
+        emitError(socket, target.id, "エラーが発生しました。");
+      }
+    }
   });
 });
 
