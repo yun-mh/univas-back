@@ -59,20 +59,64 @@
     </br>
       <input type="button" value="join" onclick="joinRoom()"> 
     </div>
+
+    <div>
+      <h1>画面調節機能</h1>
+      <label>
+        <p>ipaddress</p>
+        <input type="text" id="accIpaddress">
+      </label>
+      <label>
+        <p>fontSize</p>
+        <input type="text" id="fontSize">
+      </label>
+      <label>
+        <p>fontColor</p>
+        <input type="text" id="fontColor">
+      </label>
+      <input type="button" value="accessibility" onclick="changeAccessibility()">
+
+      <hr>
+
+      <label>
+        <p>ipaddress</p>
+        <input type="text" id="modIpaddress">
+      </label>
+      <label>
+        <p>mode</p>
+        <input type="text" id="mode">
+      </label>
+      <input type="button" value="mode" onclick="changeMode()"> 
+
+      <hr>
+
+      <label>
+        <p>roomId</p>
+        <input type="text" id="titleRoomId">
+      </label>
+      <label>
+        <p>title</p>
+        <input type="text" id="titleTitle">
+      </label>
+    </br>
+      <input type="button" value="update" onclick="updateTitle()"> 
+    </div>
+
     <br />
     </div>
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-    const socket = io.connect("http://localhost:3000");	
-    function createRoom(){
+  const socket = io.connect("http://localhost:3000");	
+  
+  function createRoom() {
 		var title = document.getElementById("title").value;
 		var username = document.getElementById("username").value;
 		var ipaddress = document.getElementById("ipaddress").value;
 		var language = document.getElementById("language").value;
 		
-    socket.emit("create-room", ({title, username, ipaddress, language}), (response)=>{
+    socket.emit("create-room", ({title, username, ipaddress, language}), (response) => {
 			document.getElementById("roomId").value = response.roomId;
 		});
 	}
@@ -97,10 +141,77 @@
 		var ipaddress = document.getElementById("joinIpaddress").value;
 		var language = document.getElementById("joinLanguage").value;
 
-    socket.emit("join-room", ({username, roomid, ipaddress, language}), (response)=>{
+    socket.emit("join-room", ({username, roomId, ipaddress, language}), (response)=>{
       //console.log(response.)
 		});
   }
+
+  function changeAccessibility() {
+		var ipaddress = document.getElementById("accIpaddress").value;
+		var fontColor = document.getElementById("fontColor").value;
+		var fontSize = document.getElementById("fontSize").value;
+
+    socket.emit("change-accessibility", ({fontSize_per: fontSize, fontColor, ipaddress}));
+  }
+
+  function changeMode() {
+		var ipaddress = document.getElementById("modIpaddress").value;
+		var mode = document.getElementById("mode").value;
+
+    socket.emit("change-mode", ({ipaddress, mode}));
+  }
+
+  function updateTitle() {
+		var titleRoomId = document.getElementById("titleRoomId").value;
+		var titleTitle = document.getElementById("titleTitle").value;
+
+    socket.emit("updated-title", ({roomId: titleRoomId, title: titleTitle}));
+  }
+
+  // フロントのon処理(テスト用)
+  socket.on("join-room-effect", (args) => {
+    console.log("join-room-effect, 全ての本体に：", args)
+  })
+
+  socket.on("leave-room-effect", (args) => {
+    console.log("leave-room-effect, 全ての本体に：", args)
+  })
+
+  socket.on("terminate-room-effect", (args) => {
+    console.log("terminate-room-effect, 全てのスマホ・本体に：", args)
+  })
+
+  socket.on("change-accessibility-effect", (args) => {
+    console.log("change-accessibility-effect, 個別本体のみに：", args)
+  })
+
+  socket.on("updated-title-effect", (args) => {
+    console.log("updated-title-effect, 全ての本体に：", args)
+  })
+
+  socket.on("change-mode-effect", (args) => {
+    console.log("change-mode-effect, 個別本体のみに：", args)
+  })
+
+  socket.on("change-screen-enter", (args) => {
+    console.log("change-screen-enter, 個別本体のみに：", args)
+  })
+
+  socket.on("change-screen-leave", (args) => {
+    console.log("change-screen-leave, 個別本体のみに：", args)
+  })
+
+  socket.on("emit-log", (args) => {
+    console.log("emit-log, 全ての本体に：", args)
+  })
+
+  socket.on("emit-reaction", (args) => {
+    console.log("emit-reaction, 全ての本体に：", args)
+  })
+
+  socket.on("error", (args) => {
+    console.log("error, 全てのケースに", args)
+  })
 	
     
  </script>
