@@ -1,6 +1,7 @@
 import http from "http";
 import { Server, Socket } from "socket.io";
 import express from "express";
+import { timeLog } from "console";
 
 const app = express();
 
@@ -75,24 +76,32 @@ wsServer.on("connection", (socket) => {
     // const clients = wsServer.sockets.adapter.rooms.get('abcde');
   });
 
+
+  // CRT
+
   socket.on("get-room", (args, callback) => {
-    const currentRoom = rooms.filter((item) => (item.roomId = args.roomId));
+    
+    const currentRoom = rooms.filter((item) => (item.roomId === args.roomId));
     const title = currentRoom.title;
 
-    const currentRoomUsers = userList.filter(
-      (item) => (item.roomId = args.roomId)
+    const currentRoomUsers = users.filter(
+      (item) => (item.roomId === args.roomId)
     );
+    
     var currentRoomUsersList = currentRoomUsers.map(function (item) {
       return item["username"];
     });
+
     callback({
-      userList: currentRoomUsersList,
-      title: title,
+      title : title,
+      userList: currentRoomUsersList
     });
+
   });
 
   socket.on("create-room", (args, callback) => {
     let roomId = generateId(5);
+    let id  = socket.id
 
     rooms.push({
       title: args.title,
@@ -102,7 +111,7 @@ wsServer.on("connection", (socket) => {
       roomId: roomId,
     });
 
-    userList.push({
+    users.push({
       socketId: socket.id,
       ipaddress: args.ipaddress,
       roomId: roomId,
@@ -115,35 +124,57 @@ wsServer.on("connection", (socket) => {
     callback({
       roomId: roomId,
     });
+
+    const username = args.username;
+
+    const currentRoomUsers = users.filter(
+      (item) => (item.roomId === args.roomId)
+    );
+    
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+
+    wsServer.in(roomId).emit("join-room-effect", ({userList: currentRoomUsersList}));
+    socket.to(id).emit("change-screen-enter", ({roomId, username}));
+
   });
 
-  socket.on("leave-room", (args, callback) => {
-    let user = userList.find((item) => item.ipaddress === args.ipaddress);
+  socket.on("leave-room", (args) => {
+    let user = users.find((item) => item.ipaddress === args.ipaddress);
     socket.leave(user.roomId);
 
-    const removeIndex = userList.findIndex(
+    const removeIndex = users.findIndex(
       (item) => item.ipaddress === args.ipaddress
     );
-    rooms.splice(removeIndex, 1);
+    users.splice(removeIndex, 1);
 
-    callback();
+    const currentRoomUsers = users.filter(
+      (item) => (item.roomId === args.roomId)
+    );
+    
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+    
+    socket.to(user.socketId).emit("change-screen-leave");
+    wsServer.in(user.roomId).emit("leave-room-effect", ({userList: currentRoomUsersList}));
+
   });
 
   socket.on("terminate-room", (args) => {
-    const users = userList.filter((item) => (item.roomId = args.roomId));
-
-    wsServer.disconnectSockets(args.roomId);
-
-    for (let i = 0; i < users.length; i++) {
-      const removeIndex = userList.findIndex(
-        (item) => item.socketId === users[i].socketId
-      );
-      rooms.splice(removeIndex, 1);
-    }
+    users = users.filter((item) => (item.roomId !== args.roomId));
 
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
+  
+    socket.in(args.roomId).emit("change-screen-leave")
+    wsServer.disconnectSockets(args.roomId);
+    
+    wsServer.emit("terminate-room-effect")
+    
   });
+
 });
 
 httpServer.listen(3000, handleListen);
