@@ -1,7 +1,6 @@
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
-import { timeLog } from "console";
 
 const app = express();
 
@@ -37,7 +36,6 @@ function emitError(io, targetType, target, errorMsg) {
 }
 
 let rooms = [];
-let userList = [];
 let users = [];
 
 // 開発サーバの駆動は「npm run dev」で！
@@ -45,8 +43,7 @@ let users = [];
 wsServer.on("connection", (socket) => {
   // ルーム情報取得
   socket.on("get-room", (args, callback) => {
-    
-    const currentRoom = rooms.filter((item) => (item.roomId === args.roomId));
+    const currentRoom = rooms.filter((item) => item.roomId === args.roomId);
     const title = currentRoom.title;
 
     const currentRoomUsers = users.filter(
@@ -61,13 +58,12 @@ wsServer.on("connection", (socket) => {
       title: title,
       userList: currentRoomUsersList,
     });
-
   });
 
   // ルーム作成
   socket.on("create-room", (args, callback) => {
     let roomId = generateId(5);
-    let id  = socket.id
+    let id = socket.id;
 
     rooms.push({
       title: args.title,
@@ -94,16 +90,17 @@ wsServer.on("connection", (socket) => {
     const username = args.username;
 
     const currentRoomUsers = users.filter(
-      (item) => (item.roomId === args.roomId)
+      (item) => item.roomId === args.roomId
     );
-    
+
     var currentRoomUsersList = currentRoomUsers.map(function (item) {
       return item["username"];
     });
 
-    wsServer.in(roomId).emit("join-room-effect", ({userList: currentRoomUsersList}));
-    socket.to(id).emit("change-screen-enter", ({roomId, username}));
-
+    wsServer
+      .in(roomId)
+      .emit("join-room-effect", { userList: currentRoomUsersList });
+    socket.to(id).emit("change-screen-enter", { roomId, username });
   });
 
   //ルーム参加処理
@@ -118,6 +115,7 @@ wsServer.on("connection", (socket) => {
           const currentRoomUsers = users.filter(
             (item) => item.roomId === roomId
           );
+
           const currentRoomUsersList = currentRoomUsers.map(function (item) {
             return item["username"];
           });
@@ -146,7 +144,7 @@ wsServer.on("connection", (socket) => {
   );
 
   // ルーム退出
-  socket.on("leave-room", (args, callback) => {
+  socket.on("leave-room", (args) => {
     let user = users.find((item) => item.ipaddress === args.ipaddress);
     socket.leave(user.roomId);
 
@@ -156,30 +154,30 @@ wsServer.on("connection", (socket) => {
     users.splice(removeIndex, 1);
 
     const currentRoomUsers = users.filter(
-      (item) => (item.roomId === args.roomId)
+      (item) => item.roomId === args.roomId
     );
-    
+
     var currentRoomUsersList = currentRoomUsers.map(function (item) {
       return item["username"];
     });
-    
-    socket.to(user.socketId).emit("change-screen-leave");
-    wsServer.in(user.roomId).emit("leave-room-effect", ({userList: currentRoomUsersList}));
 
+    socket.to(user.socketId).emit("change-screen-leave");
+    wsServer
+      .in(user.roomId)
+      .emit("leave-room-effect", { userList: currentRoomUsersList });
   });
 
   // ルーム解散
   socket.on("terminate-room", (args) => {
-    users = users.filter((item) => (item.roomId !== args.roomId));
+    users = users.filter((item) => item.roomId !== args.roomId);
 
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
-  
-    socket.in(args.roomId).emit("change-screen-leave")
+
+    socket.in(args.roomId).emit("change-screen-leave");
     wsServer.disconnectSockets(args.roomId);
-    
-    wsServer.emit("terminate-room-effect")
-    
+
+    wsServer.emit("terminate-room-effect");
   });
 
   // アクセシビリティ更新

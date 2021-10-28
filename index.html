@@ -120,30 +120,26 @@
 			document.getElementById("roomId").value = response.roomId;
 		});
 	}
-
-  function test(){
-    socket.emit("test", "abc");
-  }
 	
 	function leaveRoom(){
 		var ipaddress = document.getElementById("ipaddress").value
 		socket.emit("leave-room", ({ipaddress: ipaddress}), (respones)=>{
 		});
 	}
+
 	function terminateRoom(){
 		var roomId = document.getElementById("roomId").value;
 		socket.emit("terminate-room", ({roomId: roomId}), (respones)=>{
 		});
 	}
+  
   function joinRoom(){
 		var username = document.getElementById("joinUsername").value;
 		var roomId = document.getElementById("joinRoomId").value;
 		var ipaddress = document.getElementById("joinIpaddress").value;
 		var language = document.getElementById("joinLanguage").value;
 
-    socket.emit("join-room", ({username, roomId, ipaddress, language}), (response)=>{
-      //console.log(response.)
-		});
+    socket.emit("join-room", {username, roomId, ipaddress, language});
   }
 
   function changeAccessibility() {
