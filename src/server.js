@@ -48,7 +48,7 @@ wsServer.on("connection", (socket) => {
     const title = currentRoom.title;
 
     const currentRoomUsers = users.filter(
-      (item) => (item.roomId = args.roomId)
+      (item) => item.roomId === args.roomId
     );
 
     const currentRoomUsersList = currentRoomUsers.map(function (item) {
@@ -94,28 +94,36 @@ wsServer.on("connection", (socket) => {
     function ({ username, roomId, ipaddress, language }, callback) {
       try {
         //接続中のクライアントのIPアドレスのチェック
-        // if (socket.client.conn.remoteAddress == ipaddress) {
-        userList.push({ username });
-        users.push({
-          socketid: socket.id,
-          ipaddres: ipaddress,
-          roomId: roomId, //
-          username: username,
-          language: language,
-        });
-        socket.join(roomId);
-        callback();
-        //ユーザー参加通知のemit処理
-        wsServer.in(roomId).emit("join-room-effect", userList); //
-        //本体クライアントの入室時画面切り替え処理
-        // } else {
-        //ない場合は決めていない
-        //テスト用に例外エラーを生成
-        // throw new error();
-        // }
-      } catch (e) {
-        console.error(e.message);
-      }
+        if (socket.client.conn.remoteAddress == ipaddress) {
+          socket.join(roomId);
+
+          const currentRoomUsers = users.filter(
+            (item) => item.roomId === roomId
+          );
+          const currentRoomUsersList = currentRoomUsers.map(function (item) {
+            return item["username"];
+          });
+
+          users.push({
+            socketId: socket.id,
+            ipaddres: ipaddress,
+            roomId: roomId,
+            username: username,
+            language: language,
+          });
+
+          callback({
+            userList: currentRoomUsersList,
+          });
+
+          //ユーザー参加通知のemit処理
+          wsServer.sockets.emit("join-room-effect", {
+            userList: currentRoomUsersList,
+          });
+          //本体クライアントの入室時画面切り替え処理
+          socket.emit("change-screen-enter", { roomId, username });
+        }
+      } catch {}
     }
   );
 
