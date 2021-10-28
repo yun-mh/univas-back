@@ -27,8 +27,12 @@ function generateId(length) {
 }
 
 // エラー処理関数
-function emitError(socket, target, errorMsg) {
-  socket.to(target).emit("error", { errorMsg });
+function emitError(io, targetType, target, errorMsg) {
+  if (targetType === "single") {
+    io.to(target).emit("error", { errorMsg });
+  } else if (targetType === "all") {
+    io.in(target).emit("error", { errorMsg });
+  }
 }
 
 let rooms = [];
@@ -44,7 +48,7 @@ wsServer.on("connection", (socket) => {
     const title = currentRoom.title;
 
     const currentRoomUsers = users.filter(
-      (item) => (item.roomId === args.roomId)
+      (item) => item.roomId === args.roomId
     );
 
     const currentRoomUsersList = currentRoomUsers.map(function (item) {
@@ -85,40 +89,43 @@ wsServer.on("connection", (socket) => {
   });
 
   //ルーム参加処理
-  socket.on('join-room', function({username, roomId, ipaddress, language}, callback) {
-    try{
-      //接続中のクライアントのIPアドレスのチェック
-      if(socket.client.conn.remoteAddress == ipaddress){
-        socket.join(roomId);
+  socket.on(
+    "join-room",
+    function ({ username, roomId, ipaddress, language }, callback) {
+      try {
+        //接続中のクライアントのIPアドレスのチェック
+        if (socket.client.conn.remoteAddress == ipaddress) {
+          socket.join(roomId);
 
-        const currentRoomUsers = users.filter(
-          (item) => (item.roomId === roomId)
-        );
-        const currentRoomUsersList = currentRoomUsers.map(function (item) {
-          return item['username'];
-        });
+          const currentRoomUsers = users.filter(
+            (item) => item.roomId === roomId
+          );
+          const currentRoomUsersList = currentRoomUsers.map(function (item) {
+            return item["username"];
+          });
 
-        users.push({
-          socketId: socket.id, 
-          ipaddres: ipaddress, 
-          roomId: roomId,
-          username: username,
-          language: language
-        });
-        
-        callback({
-          userList: currentRoomUsersList
-        });
+          users.push({
+            socketId: socket.id,
+            ipaddres: ipaddress,
+            roomId: roomId,
+            username: username,
+            language: language,
+          });
 
-        //ユーザー参加通知のemit処理
-        wsServer.sockets.emit('join-room-effect', {userList: currentRoomUsersList});
-        //本体クライアントの入室時画面切り替え処理
-        socket.emit('change-screen-enter', {roomId, username});
-      }
-    }catch{
-      
+          callback({
+            userList: currentRoomUsersList,
+          });
+
+          //ユーザー参加通知のemit処理
+          wsServer.sockets.emit("join-room-effect", {
+            userList: currentRoomUsersList,
+          });
+          //本体クライアントの入室時画面切り替え処理
+          socket.emit("change-screen-enter", { roomId, username });
+        }
+      } catch {}
     }
-  });
+  );
 
   // ルーム退出
   socket.on("leave-room", (args, callback) => {
@@ -159,12 +166,32 @@ wsServer.on("connection", (socket) => {
 
       // アクセシビリティ更新通知
       if (target !== undefined) {
+        // 引数のタイプ判定
+        if (
+          typeof ipaddress !== "string" ||
+          typeof fontColor !== "object" ||
+          typeof fontSize_per !== "number"
+        ) {
+          emitError(
+            socket,
+            "single",
+            target.socketId,
+            "引数のタイプに問題があります。"
+          );
+          return;
+        }
+
         try {
           socket
-            .to(target.id)
+            .to(target.socketId)
             .emit("change-accessibility-effect", { fontSize_per, fontColor });
         } catch (e) {
-          emitError(socket, target.id, "エラーが発生しました。");
+          emitError(
+            socket,
+            "single",
+            target.socketId,
+            "エラーが発生しました。"
+          );
         }
       }
     }
@@ -175,12 +202,23 @@ wsServer.on("connection", (socket) => {
     // ルームIDからルームを取得
     const targetRoom = rooms.find((room) => room.roomId === roomId);
 
-    // 議題変更通知
     if (targetRoom !== undefined) {
+      // 引数のタイプ判定
+      if (typeof roomId !== "string" || typeof title !== "string") {
+        emitError(
+          wsServer,
+          "all",
+          targetRoom.roomId,
+          "引数のタイプに問題があります。"
+        );
+        return;
+      }
+
+      // 議題変更通知
       try {
-        socket.to(targetRoom.roomId).emit("updated-title-effect", { title });
+        wsServer.in(targetRoom.roomId).emit("updated-title-effect", { title });
       } catch (e) {
-        emitError(socket, targetRoom.roomId, "エラーが発生しました。");
+        emitError(wsServer, "all", targetRoom.roomId, "エラーが発生しました。");
       }
     }
   });
@@ -190,12 +228,24 @@ wsServer.on("connection", (socket) => {
     // 引数のIPアドレスでユーザを識別
     const target = users.find((user) => user.ipaddress === ipaddress);
 
-    // モード切替通知
     if (target !== undefined) {
+      // 引数のタイプ判定
+      if (typeof ipaddress !== "string" || typeof mode !== "boolean") {
+        emitError(
+          socket,
+          "single",
+          target.socketId,
+          "引数のタイプに問題があります。"
+        );
+        return;
+      }
+
+      // モード切替通知
       try {
-        socket.to(target.id).emit("change-mode-effect", { mode });
+        socket.to(target.socketId).emit("change-mode-effect", { mode });
+        console.log("done");
       } catch (e) {
-        emitError(socket, target.id, "エラーが発生しました。");
+        emitError(socket, "single", target.socketId, "エラーが発生しました。");
       }
     }
   });
