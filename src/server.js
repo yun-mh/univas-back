@@ -36,7 +36,6 @@ function emitError(io, targetType, target, errorMsg) {
 }
 
 let rooms = [];
-let userList = [];
 let users = [];
 
 // 開発サーバの駆動は「npm run dev」で！
