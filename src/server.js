@@ -1,6 +1,7 @@
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
+import { timeLog } from "console";
 
 const app = express();
 
@@ -43,7 +44,8 @@ let users = [];
 wsServer.on("connection", (socket) => {
   // ルーム情報取得
   socket.on("get-room", (args, callback) => {
-    const currentRoom = rooms.filter((item) => (item.roomId = args.roomId));
+    
+    const currentRoom = rooms.filter((item) => (item.roomId === args.roomId));
     const title = currentRoom.title;
 
     const currentRoomUsers = users.filter(
@@ -58,11 +60,13 @@ wsServer.on("connection", (socket) => {
       title: title,
       userList: currentRoomUsersList,
     });
+
   });
 
   // ルーム作成
   socket.on("create-room", (args, callback) => {
-    const roomId = generateId(5);
+    let roomId = generateId(5);
+    let id  = socket.id
 
     rooms.push({
       title: args.title,
@@ -85,6 +89,20 @@ wsServer.on("connection", (socket) => {
     callback({
       roomId: roomId,
     });
+
+    const username = args.username;
+
+    const currentRoomUsers = users.filter(
+      (item) => (item.roomId === args.roomId)
+    );
+    
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+
+    wsServer.in(roomId).emit("join-room-effect", ({userList: currentRoomUsersList}));
+    socket.to(id).emit("change-screen-enter", ({roomId, username}));
+
   });
 
   //ルーム参加処理
@@ -134,26 +152,33 @@ wsServer.on("connection", (socket) => {
     const removeIndex = users.findIndex(
       (item) => item.ipaddress === args.ipaddress
     );
-    rooms.splice(removeIndex, 1);
+    users.splice(removeIndex, 1);
 
-    callback();
+    const currentRoomUsers = users.filter(
+      (item) => (item.roomId === args.roomId)
+    );
+    
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+    
+    socket.to(user.socketId).emit("change-screen-leave");
+    wsServer.in(user.roomId).emit("leave-room-effect", ({userList: currentRoomUsersList}));
+
   });
 
   // ルーム解散
   socket.on("terminate-room", (args) => {
-    const users = users.filter((item) => (item.roomId = args.roomId));
-
-    wsServer.disconnectSockets(args.roomId);
-
-    for (let i = 0; i < users.length; i++) {
-      const removeIndex = users.findIndex(
-        (item) => item.socketId === users[i].socketId
-      );
-      rooms.splice(removeIndex, 1);
-    }
+    users = users.filter((item) => (item.roomId !== args.roomId));
 
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
+  
+    socket.in(args.roomId).emit("change-screen-leave")
+    wsServer.disconnectSockets(args.roomId);
+    
+    wsServer.emit("terminate-room-effect")
+    
   });
 
   // アクセシビリティ更新
