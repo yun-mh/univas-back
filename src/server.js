@@ -27,12 +27,15 @@ function generateId(length) {
 }
 
 // エラー処理関数
-function emitError(socket, target, errorMsg) {
-  socket.to(target).emit("error", { errorMsg });
+function emitError(io, targetType, target, errorMsg) {
+  if (targetType === "single") {
+    io.to(target).emit("error", { errorMsg });
+  } else if (targetType === "all") {
+    io.in(target).emit("error", { errorMsg });
+  }
 }
 
 let rooms = [];
-let userList = [];
 let users = [];
 
 // 開発サーバの駆動は「npm run dev」で！
@@ -40,11 +43,11 @@ let users = [];
 wsServer.on("connection", (socket) => {
   // ルーム情報取得
   socket.on("get-room", (args, callback) => {
-    const currentRoom = rooms.filter((item) => (item.roomId = args.roomId));
+    const currentRoom = rooms.find((item) => item.roomId === args.roomId);
     const title = currentRoom.title;
 
     const currentRoomUsers = users.filter(
-      (item) => (item.roomId === args.roomId)
+      (item) => item.roomId === args.roomId
     );
 
     const currentRoomUsersList = currentRoomUsers.map(function (item) {
@@ -59,7 +62,8 @@ wsServer.on("connection", (socket) => {
 
   // ルーム作成
   socket.on("create-room", (args, callback) => {
-    const roomId = generateId(5);
+    let roomId = generateId(5);
+    let id = socket.id;
 
     rooms.push({
       title: args.title,
@@ -82,72 +86,120 @@ wsServer.on("connection", (socket) => {
     callback({
       roomId: roomId,
     });
+
+    const username = args.username;
+
+    const currentRoomUsers = users.filter((item) => item.roomId === roomId);
+
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+
+    wsServer
+      .in(roomId)
+      .emit("join-room-effect", { userList: currentRoomUsersList });
+    socket.to(id).emit("change-screen-enter", { roomId, username });
   });
 
   //ルーム参加処理
-  socket.on('join-room', function({username, roomId, ipaddress, language}, callback) {
-    try{
+  socket.on("join-room", function ({ username, roomId, ipaddress, language }, callback) {
       //接続中のクライアントのIPアドレスのチェック
-      if(socket.client.conn.remoteAddress == ipaddress){
-        socket.join(roomId);
+    // if (socket.client.conn.remoteAddress == ipaddress) {
+      socket.join(roomId);
 
-        const currentRoomUsers = users.filter(
-          (item) => (item.roomId === roomId)
+      users.push({
+        socketId: socket.id,
+        ipaddress: ipaddress,
+        roomId: roomId,
+        username: username,
+        language: language,
+      });
+
+      const currentRoomUsers = users.filter((item) => item.roomId === roomId);
+      const currentRoomUsersList = currentRoomUsers.map(function (item) {
+        return item["username"];
+      });
+
+      callback({
+        userList: currentRoomUsersList,
+      });
+
+      //ユーザー参加通知のemit処理
+      try {
+        wsServer.in(roomId).emit("join-room-effect", {
+          userList: currentRoomUsersList,
+        });
+      } catch (e) {
+        emitError(
+          socket,
+          "all",
+          target.socketId,
+          "エラーが発生しました。"
         );
-        const currentRoomUsersList = currentRoomUsers.map(function (item) {
-          return item['username'];
-        });
-
-        users.push({
-          socketId: socket.id, 
-          ipaddres: ipaddress, 
-          roomId: roomId,
-          username: username,
-          language: language
-        });
-        
-        callback({
-          userList: currentRoomUsersList
-        });
-
-        //ユーザー参加通知のemit処理
-        wsServer.sockets.emit('join-room-effect', {userList: currentRoomUsersList});
-        //本体クライアントの入室時画面切り替え処理
-        socket.emit('change-screen-enter', {roomId, username});
       }
-    }catch{
       
-    }
+      //本体クライアントの入室時画面切り替え処理
+      try {
+        socket.emit("change-screen-enter", { roomId, username });
+      } catch (e) {
+        emitError(
+          socket,
+          "single",
+          target.socketId,
+          "エラーが発生しました。"
+        );
+      }
+    // }
   });
 
   // ルーム退出
-  socket.on("leave-room", (args, callback) => {
+  socket.on("leave-room", (args) => {
     let user = users.find((item) => item.ipaddress === args.ipaddress);
-    socket.leave(user.roomId);
 
+    // usersから該当ユーザを削除する
     const removeIndex = users.findIndex(
       (item) => item.ipaddress === args.ipaddress
     );
-    rooms.splice(removeIndex, 1);
 
-    callback();
+    users.splice(removeIndex, 1);
+
+    // ルームのユーザ名の配列を取得する
+    const currentRoomUsers = users.filter(
+      (item) => item.roomId === user.roomId
+    );
+
+    var currentRoomUsersList = currentRoomUsers.map(function (item) {
+      return item["username"];
+    });
+
+    socket.to(user.socketId).emit("change-screen-leave");
+
+    if (currentRoomUsers.length !== 0) {
+      wsServer.emit("leave-room-effect", { userList: currentRoomUsersList });
+    } else {
+      const removeIndex = rooms.findIndex(
+        (item) => item.roomId === user.roomId
+      );
+      rooms.splice(removeIndex, 1);
+
+      wsServer.disconnectSockets(user.roomId);
+    }
+
+    socket.leave(user.roomId);
   });
 
   // ルーム解散
   socket.on("terminate-room", (args) => {
-    const users = users.filter((item) => (item.roomId = args.roomId));
-
-    wsServer.disconnectSockets(args.roomId);
-
-    for (let i = 0; i < users.length; i++) {
-      const removeIndex = users.findIndex(
-        (item) => item.socketId === users[i].socketId
-      );
-      rooms.splice(removeIndex, 1);
-    }
+    users = users.filter((item) => item.roomId !== args.roomId);
 
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
+
+    wsServer.in(args.roomId).emit("change-screen-leave");
+
+    wsServer.emit("terminate-room-effect");
+
+    wsServer.disconnectSockets(args.roomId);
   });
 
   // アクセシビリティ更新
@@ -159,12 +211,32 @@ wsServer.on("connection", (socket) => {
 
       // アクセシビリティ更新通知
       if (target !== undefined) {
+        // 引数のタイプ判定
+        // if (
+        //   typeof ipaddress !== "string" ||
+        //   typeof fontColor !== "object" ||
+        //   typeof fontSize_per !== "number"
+        // ) {
+        //   emitError(
+        //     socket,
+        //     "single",
+        //     target.socketId,
+        //     "引数のタイプに問題があります。"
+        //   );
+        //   return;
+        // }
+
         try {
           socket
-            .to(target.id)
+            .to(target.socketId)
             .emit("change-accessibility-effect", { fontSize_per, fontColor });
         } catch (e) {
-          emitError(socket, target.id, "エラーが発生しました。");
+          emitError(
+            socket,
+            "single",
+            target.socketId,
+            "エラーが発生しました。"
+          );
         }
       }
     }
@@ -175,12 +247,23 @@ wsServer.on("connection", (socket) => {
     // ルームIDからルームを取得
     const targetRoom = rooms.find((room) => room.roomId === roomId);
 
-    // 議題変更通知
     if (targetRoom !== undefined) {
+      // 引数のタイプ判定
+      // if (typeof roomId !== "string" || typeof title !== "string") {
+      //   emitError(
+      //     wsServer,
+      //     "all",
+      //     targetRoom.roomId,
+      //     "引数のタイプに問題があります。"
+      //   );
+      //   return;
+      // }
+
+      // 議題変更通知
       try {
-        socket.to(targetRoom.roomId).emit("updated-title-effect", { title });
+        wsServer.in(targetRoom.roomId).emit("updated-title-effect", { title });
       } catch (e) {
-        emitError(socket, targetRoom.roomId, "エラーが発生しました。");
+        emitError(wsServer, "all", targetRoom.roomId, "エラーが発生しました。");
       }
     }
   });
@@ -190,12 +273,23 @@ wsServer.on("connection", (socket) => {
     // 引数のIPアドレスでユーザを識別
     const target = users.find((user) => user.ipaddress === ipaddress);
 
-    // モード切替通知
     if (target !== undefined) {
+      // 引数のタイプ判定
+      // if (typeof ipaddress !== "string" || typeof mode !== "boolean") {
+      //   emitError(
+      //     socket,
+      //     "single",
+      //     target.socketId,
+      //     "引数のタイプに問題があります。"
+      //   );
+      //   return;
+      // }
+
+      // モード切替通知
       try {
-        socket.to(target.id).emit("change-mode-effect", { mode });
+        socket.to(target.socketId).emit("change-mode-effect", { mode });
       } catch (e) {
-        emitError(socket, target.id, "エラーが発生しました。");
+        emitError(socket, "single", target.socketId, "エラーが発生しました。");
       }
     }
   });
