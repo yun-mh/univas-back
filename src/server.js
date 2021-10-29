@@ -102,42 +102,55 @@ wsServer.on("connection", (socket) => {
   });
 
   //ルーム参加処理
-  socket.on(
-    "join-room",
-    function ({ username, roomId, ipaddress, language }, callback) {
+  socket.on("join-room", function ({ username, roomId, ipaddress, language }, callback) {
+      //接続中のクライアントのIPアドレスのチェック
+    // if (socket.client.conn.remoteAddress == ipaddress) {
+      socket.join(roomId);
+
+      users.push({
+        socketId: socket.id,
+        ipaddress: ipaddress,
+        roomId: roomId,
+        username: username,
+        language: language,
+      });
+
+      const currentRoomUsers = users.filter((item) => item.roomId === roomId);
+      const currentRoomUsersList = currentRoomUsers.map(function (item) {
+        return item["username"];
+      });
+
+      callback({
+        userList: currentRoomUsersList,
+      });
+
+      //ユーザー参加通知のemit処理
       try {
-        //接続中のクライアントのIPアドレスのチェック
-        // if (socket.client.conn.remoteAddress == ipaddress) {
-        socket.join(roomId);
-
-        users.push({
-          socketId: socket.id,
-          ipaddress: ipaddress,
-          roomId: roomId,
-          username: username,
-          language: language,
-        });
-
-        const currentRoomUsers = users.filter((item) => item.roomId === roomId);
-
-        const currentRoomUsersList = currentRoomUsers.map(function (item) {
-          return item["username"];
-        });
-
-        callback({
-          userList: currentRoomUsersList,
-        });
-
-        //ユーザー参加通知のemit処理
         wsServer.in(roomId).emit("join-room-effect", {
           userList: currentRoomUsersList,
         });
-        //本体クライアントの入室時画面切り替え処理
+      } catch (e) {
+        emitError(
+          socket,
+          "all",
+          target.socketId,
+          "エラーが発生しました。"
+        );
+      }
+      
+      //本体クライアントの入室時画面切り替え処理
+      try {
         socket.emit("change-screen-enter", { roomId, username });
-        // }
-      } catch {}
-    }
-  );
+      } catch (e) {
+        emitError(
+          socket,
+          "single",
+          target.socketId,
+          "エラーが発生しました。"
+        );
+      }
+    // }
+  });
 
   // ルーム退出
   socket.on("leave-room", (args) => {
