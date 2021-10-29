@@ -104,11 +104,11 @@
 
     <br />
     </div>
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script src="https://bitter-quail-45.loca.lt/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("http://localhost:3000");	
+  const socket = io.connect("https://bitter-quail-45.loca.lt");	
   
   function createRoom() {
 		var title = document.getElementById("title").value;
@@ -123,8 +123,7 @@
 	
 	function leaveRoom(){
 		var ipaddress = document.getElementById("ipaddress").value
-		socket.emit("leave-room", ({ipaddress: ipaddress}), (respones)=>{
-		});
+		socket.emit("leave-room", ({ipaddress: ipaddress}));
 	}
 
 	function terminateRoom(){
@@ -139,7 +138,18 @@
 		var ipaddress = document.getElementById("joinIpaddress").value;
 		var language = document.getElementById("joinLanguage").value;
 
-    socket.emit("join-room", {username, roomId, ipaddress, language});
+    socket.emit("join-room", {username, roomId, ipaddress, language}, (arg) => {
+      console.log(arg)
+    });
+  }
+
+  function test() {
+    const roomIds = document.getElementById("joinRoomId").value;
+
+    socket.emit("get-room", { roomId: roomIds }, ({title, userList}) => {
+      console.log("title", title)
+      console.log("userList", userList)
+    })
   }
 
   function changeAccessibility() {
@@ -173,8 +183,8 @@
     console.log("leave-room-effect, 全ての本体に：", args)
   })
 
-  socket.on("terminate-room-effect", (args) => {
-    console.log("terminate-room-effect, 全てのスマホ・本体に：", args)
+  socket.on("terminate-room-effect", () => {
+    console.log("terminate-room-effect, 全てのスマホ・本体に：")
   })
 
   socket.on("change-accessibility-effect", (args) => {
@@ -193,8 +203,8 @@
     console.log("change-screen-enter, 個別本体のみに：", args)
   })
 
-  socket.on("change-screen-leave", (args) => {
-    console.log("change-screen-leave, 個別本体のみに：", args)
+  socket.on("change-screen-leave", () => {
+    console.log("change-screen-leave, 個別本体のみに：")
   })
 
   socket.on("emit-log", (args) => {
