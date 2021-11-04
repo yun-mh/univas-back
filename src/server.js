@@ -102,9 +102,11 @@ wsServer.on("connection", (socket) => {
   });
 
   //ルーム参加処理
-  socket.on("join-room", function ({ username, roomId, ipaddress, language }, callback) {
+  socket.on(
+    "join-room",
+    function ({ username, roomId, ipaddress, language }, callback) {
       //接続中のクライアントのIPアドレスのチェック
-    // if (socket.client.conn.remoteAddress == ipaddress) {
+      // if (socket.client.conn.remoteAddress == ipaddress) {
       socket.join(roomId);
 
       users.push({
@@ -130,27 +132,18 @@ wsServer.on("connection", (socket) => {
           userList: currentRoomUsersList,
         });
       } catch (e) {
-        emitError(
-          socket,
-          "all",
-          target.socketId,
-          "エラーが発生しました。"
-        );
+        emitError(socket, "all", target.socketId, "エラーが発生しました。");
       }
-      
+
       //本体クライアントの入室時画面切り替え処理
       try {
         socket.emit("change-screen-enter", { roomId, username });
       } catch (e) {
-        emitError(
-          socket,
-          "single",
-          target.socketId,
-          "エラーが発生しました。"
-        );
+        emitError(socket, "single", target.socketId, "エラーが発生しました。");
       }
-    // }
-  });
+      // }
+    }
+  );
 
   // ルーム退出
   socket.on("leave-room", (args) => {
