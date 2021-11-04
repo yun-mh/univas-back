@@ -69,7 +69,7 @@ wsServer.on("connection", (socket) => {
       return item["roomId"];
     });
 
-    while(roomIdList.includes(roomId)){
+    while (roomIdList.includes(roomId)) {
       roomId = generateId(5);
     }
 
@@ -103,37 +103,27 @@ wsServer.on("connection", (socket) => {
       return item["username"];
     });
 
-    try{
+    try {
       wsServer
-      .in(roomId)
-      .emit("join-room-effect", { userList: currentRoomUsersList });
-    }catch{
-      emitError(
-        wsServer,
-        "all",
-        roomId,
-        "エラーが発生した。"
-      )
+        .in(roomId)
+        .emit("join-room-effect", { userList: currentRoomUsersList });
+    } catch {
+      emitError(wsServer, "all", roomId, "エラーが発生しました。");
     }
 
-    try{
-      socket
-        .to(id)
-        .emit("change-screen-enter", { roomId, username });
-    }catch{
-      emitError(
-        socket,
-        "single",
-        id,
-        "エラーが発生した。"
-      )
+    try {
+      socket.to(id).emit("change-screen-enter", { roomId, username });
+    } catch {
+      emitError(socket, "single", id, "エラーが発生しました。");
     }
   });
 
   //ルーム参加処理
-  socket.on("join-room", function ({ username, roomId, ipaddress, language }, callback) {
+  socket.on(
+    "join-room",
+    function ({ username, roomId, ipaddress, language }, callback) {
       //接続中のクライアントのIPアドレスのチェック
-    // if (socket.client.conn.remoteAddress == ipaddress) {
+      // if (socket.client.conn.remoteAddress == ipaddress) {
       socket.join(roomId);
 
       users.push({
@@ -159,27 +149,18 @@ wsServer.on("connection", (socket) => {
           userList: currentRoomUsersList,
         });
       } catch (e) {
-        emitError(
-          socket,
-          "all",
-          target.socketId,
-          "エラーが発生しました。"
-        );
+        emitError(wsServer, "all", roomId, "エラーが発生しました。");
       }
-      
+
       //本体クライアントの入室時画面切り替え処理
       try {
-        socket.emit("change-screen-enter", { roomId, username });
+        socket.to(socket.id).emit("change-screen-enter", { roomId, username });
       } catch (e) {
-        emitError(
-          socket,
-          "single",
-          target.socketId,
-          "エラーが発生しました。"
-        );
+        emitError(socket, "single", socket.id, "エラーが発生しました。");
       }
-    // }
-  });
+      // }
+    }
+  );
 
   // ルーム退出
   socket.on("leave-room", (args) => {
@@ -202,29 +183,16 @@ wsServer.on("connection", (socket) => {
     });
 
     try {
-      socket
-        .to(user.socketId)
-        .emit("change-screen-leave");
+      socket.to(user.socketId).emit("change-screen-leave");
     } catch (e) {
-      emitError(
-        socket,
-        "single",
-        user.socketId,
-        "エラーが発生しました。"
-      );
+      emitError(socket, "single", user.socketId, "エラーが発生しました。");
     }
 
     if (currentRoomUsers.length !== 0) {
       try {
-        wsServer
-          .emit("leave-room-effect", { userList: currentRoomUsersList });
+        wsServer.emit("leave-room-effect", { userList: currentRoomUsersList });
       } catch (e) {
-        emitError(
-          wsServer,
-          "all",
-          user.roomId,
-          "エラーが発生しました。"
-        );
+        emitError(wsServer, "all", user.roomId, "エラーが発生しました。");
       }
     } else {
       const removeIndex = rooms.findIndex(
@@ -235,24 +203,14 @@ wsServer.on("connection", (socket) => {
       try {
         wsServer.disconnectSockets(user.roomId);
       } catch (e) {
-        emitError(
-          wsServer,
-          "all",
-          user.roomId,
-          "エラーが発生しました。"
-        );
+        emitError(wsServer, "all", user.roomId, "エラーが発生しました。");
       }
     }
 
     try {
       socket.leave(user.roomId);
     } catch (e) {
-      emitError(
-        socket,
-        "single",
-        user.socketId,
-        "エラーが発生しました。"
-      );
+      emitError(socket, "single", user.socketId, "エラーが発生しました。");
     }
   });
 
@@ -263,19 +221,14 @@ wsServer.on("connection", (socket) => {
     const removeIndex = rooms.findIndex((item) => item.roomId === args.roomId);
     rooms.splice(removeIndex, 1);
 
-    try{
+    try {
       wsServer.in(args.roomId).emit("change-screen-leave");
 
       wsServer.emit("terminate-room-effect");
-  
+
       wsServer.disconnectSockets(args.roomId);
-    }catch(e){
-      emitError(
-        wsServer,
-        "all",
-        args.roomId,
-        "エラーが発生した。"
-      )
+    } catch (e) {
+      emitError(wsServer, "all", args.roomId, "エラーが発生した。");
     }
   });
 
