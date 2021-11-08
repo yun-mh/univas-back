@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Device</title>
+
+  <body>
+    <div>
+      <div>
+        <h1>デバイス</h1>
+        <label>
+          <p>ip address</p>
+          <input type="text" id="ipaddress">
+        </label>
+      </br>
+        <input type="button" value="entry" onclick="sendEntry()"> 
+      </div>
+
+      <hr>
+
+      <div>
+        <label>
+          <p>roomId</p>
+          <input type="text" id="roomId">
+        </label>
+      </br>
+        <input type="button" value="getRoom" onclick="getRoom()"> 
+      </div>
+    </div>
+
+    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+  </body>
+
+  <script>
+  const socket = io.connect("http://localhost:4000");	
+
+  console.log("socket id", socket)
+  
+  function sendEntry() {
+    const ipaddress = document.getElementById("ipaddress").value;
+
+    socket.emit("entry", { ipaddress });
+  }
+
+  function getRoom() {
+    let roomId = document.getElementById("roomId").value;
+
+    socket.emit("get-room", { roomId }, ({title, userList}) => {
+      console.log("title", title)
+      console.log("userList", userList)
+    })
+  }
+
+  // フロントのon処理(テスト用)
+  socket.on("join-room-effect", (args) => {
+    console.log("join-room-effect, 全ての本体に：", args)
+  })
+
+  socket.on("leave-room-effect", (args) => {
+    console.log("leave-room-effect, 全ての本体に：", args)
+  })
+
+  socket.on("terminate-room-effect", () => {
+    console.log("terminate-room-effect, 全てのスマホ・本体に：")
+  })
+
+  socket.on("change-accessibility-effect", (args) => {
+    console.log("change-accessibility-effect, 個別本体のみに：", args)
+  })
+
+  socket.on("updated-title-effect", (args) => {
+    console.log("updated-title-effect, 全ての本体に：", args)
+  })
+
+  socket.on("change-mode-effect", (args) => {
+    console.log("change-mode-effect, 個別本体のみに：", args)
+  })
+
+  socket.on("change-screen-enter", (args) => {
+    console.log("change-screen-enter, 個別本体のみに：", args)
+  })
+
+  socket.on("change-screen-leave", () => {
+    console.log("change-screen-leave, 個別本体のみに：")
+  })
+    
+ </script>
+  
+</html>
