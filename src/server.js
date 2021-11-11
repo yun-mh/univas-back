@@ -394,6 +394,35 @@ wsServer.on("connection", (socket) => {
       }
     }
   });
+
+  //下記AIテスト用
+  socket.on("send-detected-voice", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100"); //IPアドレスはAI側から受け取る？
+
+    try {
+      wsServer.emit("emit-log", {
+        username: user.username,
+        comment: args.comment,
+        time: args.time,
+      });
+    } catch (e) {
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
+    }
+  });
+
+  socket.on("send-detected-gesture", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100");
+
+    try {
+      wsServer.emit("emit-reaction", {
+        username: user.username,
+        reaction: args.reaction,
+        time: args.time,
+      });
+    } catch (e) {
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
+    }
+  });
 });
 
 const handleListen = () => console.log(`Listening on http://localhost:4000`);
