@@ -36,7 +36,7 @@
       <br />
       <input type="button" value="leave" onclick="leaveRoom()">
       <input type="button" value="terminate" onclick="terminateRoom()">
-      <input type="button" value="test" onclick="test()">
+      <input type="button" value="getRoom" onclick="getRoom()">
     </div>
     <div>
       <h1>ルーム参加</h1>
@@ -104,11 +104,11 @@
 
     <br />
     </div>
-    <script src="socket.io/socket.io.js"></script>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("http://localhost:3000/");	
+  const socket = io.connect("http://localhost:3000");	
   
   function createRoom() {
 		var title = document.getElementById("title").value;
@@ -143,8 +143,11 @@
     });
   }
 
-  function test() {
-    const roomIds = document.getElementById("joinRoomId").value;
+  function getRoom() {
+    let roomIds = document.getElementById("joinRoomId").value;
+    if (!roomIds) {
+      roomIds = document.getElementById("roomId").value;
+    }
 
     socket.emit("get-room", { roomId: roomIds }, ({title, userList}) => {
       console.log("title", title)
