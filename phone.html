@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Chat App</title>
+    <title>Phone</title>
 
   <body>
     <div>
@@ -36,7 +36,6 @@
       <br />
       <input type="button" value="leave" onclick="leaveRoom()">
       <input type="button" value="terminate" onclick="terminateRoom()">
-      <input type="button" value="getRoom" onclick="getRoom()">
     </div>
     <div>
       <h1>ルーム参加</h1>
@@ -102,13 +101,38 @@
       <input type="button" value="update" onclick="updateTitle()"> 
     </div>
 
-    <br />
+    <hr>
+
+    <form action="http://localhost:4000/send-log-url" method="POST">
+      <label>
+        <p>roomId</p>
+        <input type="text" name="roomId" value="OS4XS" id="logRoomId" readonly>
+      </label>
+      <label>
+        <p>logUrl</p>
+        <input type="text" name="logUrl" value="http://test/log/1" id="logLogUrl" readonly>
+      </label>
+
+      <input type="submit" value="sendLog"> 
+    </form>
+
+    <hr>
+
+    <form action="http://localhost:4000/get-log-url" method="GET">
+      <label>
+        <p>roomId</p>
+        <input type="text" name="roomId" value="OS4XS" id="getLogRoomId" readonly>
+      </label>
+
+      <input type="submit" value="getLog"> 
+    </form>
+
     </div>
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("http://localhost:3000");	
+  const socket = io.connect("http://localhost:4000");	
   
   function createRoom() {
 		var title = document.getElementById("title").value;
@@ -143,18 +167,6 @@
     });
   }
 
-  function getRoom() {
-    let roomIds = document.getElementById("joinRoomId").value;
-    if (!roomIds) {
-      roomIds = document.getElementById("roomId").value;
-    }
-
-    socket.emit("get-room", { roomId: roomIds }, ({title, userList}) => {
-      console.log("title", title)
-      console.log("userList", userList)
-    })
-  }
-
   function changeAccessibility() {
 		var ipaddress = document.getElementById("accIpaddress").value;
 		var fontColor = document.getElementById("fontColor").value;
@@ -177,37 +189,12 @@
     socket.emit("updated-title", ({roomId: titleRoomId, title: titleTitle}));
   }
 
-  // フロントのon処理(テスト用)
-  socket.on("join-room-effect", (args) => {
-    console.log("join-room-effect, 全ての本体に：", args)
-  })
-
   socket.on("leave-room-effect", (args) => {
     console.log("leave-room-effect, 全ての本体に：", args)
   })
 
   socket.on("terminate-room-effect", () => {
     console.log("terminate-room-effect, 全てのスマホ・本体に：")
-  })
-
-  socket.on("change-accessibility-effect", (args) => {
-    console.log("change-accessibility-effect, 個別本体のみに：", args)
-  })
-
-  socket.on("updated-title-effect", (args) => {
-    console.log("updated-title-effect, 全ての本体に：", args)
-  })
-
-  socket.on("change-mode-effect", (args) => {
-    console.log("change-mode-effect, 個別本体のみに：", args)
-  })
-
-  socket.on("change-screen-enter", (args) => {
-    console.log("change-screen-enter, 個別本体のみに：", args)
-  })
-
-  socket.on("change-screen-leave", () => {
-    console.log("change-screen-leave, 個別本体のみに：")
   })
 
   socket.on("emit-log", (args) => {
