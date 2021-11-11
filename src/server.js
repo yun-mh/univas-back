@@ -4,6 +4,8 @@ import express from "express";
 
 const app = express();
 
+app.use(express.static('./'));
+
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
 
 const httpServer = http.createServer(app);
@@ -41,6 +43,39 @@ let users = [];
 // 開発サーバの駆動は「npm run dev」で！
 // 下のブロックから機能実装！
 wsServer.on("connection", (socket) => {
+  //下記AIテスト用
+  socket.on("send-detected-voice", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100");//IPアドレスはAI側から受け取る？
+
+    try {
+      wsServer.emit("emit-log", { username:user.username, comment:args.comment, time:args.time});
+    } catch (e) {
+      emitError(
+        socket,
+        "single",
+        target.socketId,
+        "エラーが発生しました。"
+      );
+    }
+  });
+
+  socket.on("send-detected-gesture", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100");
+
+    try {
+      wsServer.emit("emit-reaction", { username:user.username, reaction:args.reaction, time:args.time});
+    } catch (e) {
+      emitError(
+        socket,
+        "single",
+        target.socketId,
+        "エラーが発生しました。"
+      );
+    }
+  });
+
+
+
   // ルーム情報取得
   socket.on("get-room", (args, callback) => {
     const currentRoom = rooms.find((item) => item.roomId === args.roomId);
