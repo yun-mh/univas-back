@@ -1,10 +1,53 @@
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
+import { Database } from "./database";
 
+// express設定
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const handleListen = () => console.log(`Listening on http://localhost:4000`);
+const db = new Database();
+
+// ログダウンロードURL送信
+app.post("/send-log-url", async (req, res) => {
+  if (!req.body) {
+    return;
+  }
+
+  const { roomId, logUrl } = req.body;
+  try {
+    db.init();
+    db.insert("INSERT INTO log(roomId, logUrl) values(?, ?)", [roomId, logUrl]);
+    db.close();
+
+    return res.status(201).send();
+  } catch (e) {
+    return res.status(500).send({
+      error: { code: 500, message: "Fail to post data" },
+    });
+  }
+});
+
+// ログダウンロードURL入手
+app.get("/get-log-url", async (req, res) => {
+  const roomId = req.query.roomId;
+
+  try {
+    db.init();
+    const queryResult = await db.get("SELECT * FROM log WHERE roomId = ?", [
+      roomId,
+    ]);
+    db.close();
+
+    return res.status(200).send({ logUrl: queryResult.logUrl });
+  } catch (e) {
+    return res.status(404).send({
+      error: { code: 404, message: "Fail on getting data from database" },
+    });
+  }
+});
 
 const httpServer = http.createServer(app);
 const wsServer = new Server(httpServer, {
@@ -43,20 +86,11 @@ let deviceUsers = []; // デバイス
 
 wsServer.on("connection", (socket) => {
   // 本体起動時にデバイス情報を登録
-  // socket.on("entry", () => {
-  //   // デバイスユーザ配列に保存
-  //   deviceUsers.push({
-  //     socketId: socket.id,
-  //     ipaddress: socket.client.conn.remoteAddress, //　IPアドレスか確認する必要あり。
-  //     roomId: "",
-  //   });
-  // });
-  // テスト用
-  socket.on("entry", ({ ipaddress }) => {
+  socket.on("entry", () => {
     // デバイスユーザ配列に保存
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress, //　IPアドレスか確認する必要あり。
+      ipaddress: socket.handshake.address,
       roomId: "",
     });
   });
@@ -107,12 +141,14 @@ wsServer.on("connection", (socket) => {
       const targetDevice = deviceUsers.find(
         (device) => device.ipaddress === ipaddress
       );
+      console.log(targetDevice);
       if (targetDevice !== undefined) {
         targetDevice.roomId = roomId;
       }
 
       // スマホとデバイス共にルームに参加させる
-      const deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
+      const deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId); // エラー時に切断されたらそれを対応する機能！
+      console.log(deviceSocket.socketId);
       deviceSocket.join(roomId);
       socket.join(roomId);
 
@@ -358,6 +394,37 @@ wsServer.on("connection", (socket) => {
       }
     }
   });
+
+  //下記AIテスト用
+  socket.on("send-detected-voice", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100"); //IPアドレスはAI側から受け取る？
+
+    try {
+      wsServer.emit("emit-log", {
+        username: user.username,
+        comment: args.comment,
+        time: args.time,
+      });
+    } catch (e) {
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
+    }
+  });
+
+  socket.on("send-detected-gesture", function (args) {
+    let user = users.find((item) => item.ipaddress === "192.168.2.100");
+
+    try {
+      wsServer.emit("emit-reaction", {
+        username: user.username,
+        reaction: args.reaction,
+        time: args.time,
+      });
+    } catch (e) {
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
+    }
+  });
 });
 
-httpServer.listen(4000, handleListen);
+const handleListen = () => console.log(`Listening on http://localhost:4000`);
+
+httpServer.listen(4000, "0.0.0.0", handleListen);

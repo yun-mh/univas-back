@@ -101,7 +101,32 @@
       <input type="button" value="update" onclick="updateTitle()"> 
     </div>
 
-    <br />
+    <hr>
+
+    <form action="http://localhost:4000/send-log-url" method="POST">
+      <label>
+        <p>roomId</p>
+        <input type="text" name="roomId" value="OS4XS" id="logRoomId" readonly>
+      </label>
+      <label>
+        <p>logUrl</p>
+        <input type="text" name="logUrl" value="http://test/log/1" id="logLogUrl" readonly>
+      </label>
+
+      <input type="submit" value="sendLog"> 
+    </form>
+
+    <hr>
+
+    <form action="http://localhost:4000/get-log-url" method="GET">
+      <label>
+        <p>roomId</p>
+        <input type="text" name="roomId" value="OS4XS" id="getLogRoomId" readonly>
+      </label>
+
+      <input type="submit" value="getLog"> 
+    </form>
+
     </div>
     <script src="http://localhost:4000/socket.io/socket.io.js"></script>
   </body>
@@ -183,7 +208,6 @@
   socket.on("error", (args) => {
     console.log("error, 全てのケースに", args)
   })
-	
     
  </script>
   
