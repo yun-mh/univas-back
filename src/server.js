@@ -43,23 +43,23 @@ let deviceUsers = []; // デバイス
 
 wsServer.on("connection", (socket) => {
   // 本体起動時にデバイス情報を登録
-  socket.on("entry", () => {
-    // デバイスユーザ配列に保存
-    deviceUsers.push({
-      socketId: socket.id,
-      ipaddress: socket.client.conn.remoteAddress, //　IPアドレスか確認する必要あり。
-      roomId: "",
-    });
-  });
-  // テスト用
-  // socket.on("entry", ({ ipaddress }) => {
+  // socket.on("entry", () => {
   //   // デバイスユーザ配列に保存
   //   deviceUsers.push({
   //     socketId: socket.id,
-  //     ipaddress, //　IPアドレスか確認する必要あり。
+  //     ipaddress: socket.client.conn.remoteAddress, //　IPアドレスか確認する必要あり。
   //     roomId: "",
   //   });
   // });
+  // テスト用
+  socket.on("entry", ({ ipaddress }) => {
+    // デバイスユーザ配列に保存
+    deviceUsers.push({
+      socketId: socket.id,
+      ipaddress, //　IPアドレスか確認する必要あり。
+      roomId: "",
+    });
+  });
 
   // ルーム情報取得
   socket.on("get-room", ({ roomId }, callback) => {
