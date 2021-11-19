@@ -36,8 +36,6 @@
   <script>
   const socket = io.connect("http://localhost:4000");	
 
-  console.log("socket id", socket)
-  
   function sendEntry() {
     const ipaddress = document.getElementById("ipaddress").value;
 
@@ -84,6 +82,10 @@
 
   socket.on("change-screen-leave", () => {
     console.log("change-screen-leave, 個別本体のみに：")
+  })
+
+  socket.on("error", (args) => {
+    console.log("error, 全てのケースに", args)
   })
     
  </script>
