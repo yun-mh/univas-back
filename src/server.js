@@ -86,6 +86,55 @@ wsServer.on("connection", (socket) => {
     });
   });
 
+  socket.on("disconnect", () => {
+    const ipaddress = socket.handshake.address;
+
+    const phoneUser = phoneUsers.find((item) => item.ipaddress === ipaddress);
+    const roomId = phoneUser.roomId;
+
+    const newPhoneUsers = phoneUsers.filter(
+      (item) => item.ipaddress === ipaddress
+    );
+    phoneUsers = newPhoneUsers;
+
+    const newDeviceUsers = deviceUsers.filter(
+      (item) => item.ipaddress === ipaddress
+    );
+    deviceUsers = newDeviceUsers;
+
+    // ユーザリストを取得
+    const currentRoomUsers = phoneUsers.filter(
+      (item) => item.roomId === roomId
+    );
+
+    const currentRoomUsersList = currentRoomUsers.map(function (user) {
+      return user["username"];
+    });
+
+    // 退出か自動解散か判断
+    if (phoneUser.isAdmin) {
+      const removeIndex = rooms.findIndex(
+        (room) => room.roomId === phoneUser.roomId
+      );
+      rooms.splice(removeIndex, 1);
+
+      wsServer.disconnectSockets(phoneUser.roomId);
+    } else {
+      try {
+        wsServer.emit("leave-room-effect", { userList: currentRoomUsersList });
+
+        // スマホとデバイス共にルームに退出させる
+        const deviceSocket = wsServer.sockets.sockets.get(
+          targetDevice.socketId
+        );
+        deviceSocket.leave(phoneUser.roomId);
+        socket.leave(phoneUser.roomId);
+      } catch (e) {
+        emitError(wsServer, "all", phoneUser.roomId, "エラーが発生しました。");
+      }
+    }
+  });
+
   // ルーム情報取得
   socket.on("get-room", ({ roomId }, callback) => {
     const currentRoom = rooms.find((room) => room.roomId === roomId);
@@ -113,6 +162,7 @@ wsServer.on("connection", (socket) => {
         ipaddress: ipaddress,
         language: language,
         roomId: roomId,
+        isAdmin: true,
       });
 
       phoneUsers.push({
@@ -174,6 +224,7 @@ wsServer.on("connection", (socket) => {
         roomId: roomId,
         username: username,
         language: language,
+        isAdmin: false,
       });
 
       // デバイスユーザからターゲットデバイスを探し、参加の処理を行う
@@ -245,7 +296,14 @@ wsServer.on("connection", (socket) => {
     }
 
     // 退出か自動解散か判断
-    if (currentRoomUsers.length !== 0) {
+    if (phoneUser.isAdmin) {
+      const removeIndex = rooms.findIndex(
+        (room) => room.roomId === phoneUser.roomId
+      );
+      rooms.splice(removeIndex, 1);
+
+      wsServer.disconnectSockets(phoneUser.roomId);
+    } else {
       try {
         wsServer.emit("leave-room-effect", {
           userList: getUserList(phoneUsers, phoneUser.roomId),
@@ -266,9 +324,6 @@ wsServer.on("connection", (socket) => {
           errorMsg: "エラーが発生しました。",
         });
       }
-    } else {
-      rooms.filter((room) => room.roomId !== phoneUser.roomId);
-      wsServer.disconnectSockets(phoneUser.roomId);
     }
   });
 
