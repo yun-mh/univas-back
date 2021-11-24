@@ -426,34 +426,34 @@ wsServer.on("connection", (socket) => {
 
   //AI用
   socket.on("send-detected-voice", (args) => {
-    const targettargetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
+    const targetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
 
     try {
       wsServer.emit("emit-log", {
-        username: targettargetDevice.username,
+        username: targetDevice.username,
         comment: args.comment,
         time: args.time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
-        targetId: targettargetDevice.socketId,
+        targetId: targetDevice.socketId,
         errorMsg: "エラーが発生しました。",
       });
     }
   });
 
   socket.on("send-detected-gesture", (args) => {
-    const targettargetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
+    const targetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
 
     try {
       wsServer.emit("emit-reaction", {
-        username: targettargetDevice.username,
+        username: targetDevice.username,
         reaction: args.reaction,
         time: args.time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
-        targetId: targettargetDevice.socketId,
+        targetId: targetDevice.socketId,
         errorMsg: "エラーが発生しました。",
       });
     }
