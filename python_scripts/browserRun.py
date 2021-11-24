@@ -7,13 +7,12 @@ with paramiko.SSHClient() as ssh:
 
     try:
         # ssh接続
-        ssh.connect('192.168.2.100', port=22, username='taka', password='1109takaaki')
+        ssh.connect('[IPアドレス]', port=22, username='[ユーザー名]', password='[パスワード]')
         # ブラウザ再起動
         stdin, stdout, stderr = ssh.exec_command('pkill -f chromium')
         time.sleep(0.1)
-        stdin, stdout, stderr = ssh.exec_command('DISPLAY=:0 chromium-browser http://192.168.2.7:4000/device.html --kiosk')
+        stdin, stdout, stderr = ssh.exec_command('DISPLAY=:0 chromium-browser [URL] --kiosk')
         
         print('browser is running...')
-    
     except err as e:
-        print('error')
+        print(e.message);
