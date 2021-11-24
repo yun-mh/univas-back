@@ -8,6 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+
 const db = new Database();
 
 // ログダウンロードURL送信
@@ -86,14 +87,22 @@ let deviceUsers = []; // デバイス
 
 wsServer.on("connection", (socket) => {
   // 本体起動時にデバイス情報を登録
-  socket.on("entry", () => {
-    // デバイスユーザ配列に保存
-    deviceUsers.push({
-      socketId: socket.id,
-      ipaddress: socket.handshake.address,
-      roomId: "",
+  // socket.on("entry", () => {
+  //   // デバイスユーザ配列に保存
+  //   deviceUsers.push({
+  //     socketId: socket.id,
+  //     ipaddress: socket.handshake.address,
+  //     roomId: "",
+  //   });
+  // });
+    socket.on("entry", ({ ipaddress }) => {
+      // デバイスユーザ配列に保存
+      deviceUsers.push({
+        socketId: socket.id,
+        ipaddress, //　IPアドレスか確認する必要あり。
+        roomId: "",
+      });
     });
-  });
 
   // ルーム情報取得
   socket.on("get-room", ({ roomId }, callback) => {
@@ -397,36 +406,45 @@ wsServer.on("connection", (socket) => {
 
   //下記AIテスト用
   socket.on("send-detected-voice", function (args) {
-    let user = users.find((item) => item.ipaddress === "192.168.2.100");//IPアドレスはAI側から受け取る？
+    // let user = users.find((item) => item.ipaddress === "192.168.2.100");//IPアドレスはAI側から受け取る？
 
     try {
-      wsServer.emit("emit-log", { username:user.username, comment:args.comment, time:args.time});
+      wsServer.emit("emit-log", { 
+        username:'taka', 
+        comment:args.comment, 
+        time:args.time
+      });
     } catch (e) {
-      emitError(
-        socket,
-        "single",
-        target.socketId,
-        "エラーが発生しました。"
-      );
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
     }
   });
 
   socket.on("send-detected-gesture", function (args) {
-    let user = users.find((item) => item.ipaddress === "192.168.2.100");
+    // let user = users.find((item) => item.ipaddress === "192.168.2.100");
 
     try {
-      wsServer.emit("emit-reaction", { username:user.username, reaction:args.reaction, time:args.time});
+      wsServer.emit("emit-reaction", { 
+        username:'taka', 
+        reaction:args.reaction, 
+        time:args.time
+      });
     } catch (e) {
-      emitError(
-        socket,
-        "single",
-        target.socketId,
-        "エラーが発生しました。"
-      );
+      emitError(socket, "single", target.socketId, "エラーが発生しました。");
     }
   });
+
 });
 
 const handleListen = () => console.log(`Listening on http://localhost:4000`);
 
-httpServer.listen(4000, "0.0.0.0", handleListen);
+httpServer.listen(4000, "192.168.2.7", handleListen);
+
+//本体クライアントのブラウザ起動
+const {PythonShell} = require('python-shell');
+PythonShell.run('python_scripts/browserRun.py', null, function (err, result) {
+  if (err){
+      console.log(err.message)
+  }else{
+      console.log(result);
+  }
+});

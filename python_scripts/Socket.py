@@ -27,5 +27,5 @@ def send_detected_gesture():
 
 
 sio.on('connect', connect)
-sio.connect('http://localhost:3000/')
+sio.connect('http://192.168.2.7:4000/')
 sio.wait()
