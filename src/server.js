@@ -460,6 +460,7 @@ wsServer.on("connection", (socket) => {
   });
 
 });
+});
 
 const handleListen = () => console.log(`Listening on http://localhost:4000`);
 
