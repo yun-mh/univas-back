@@ -1,8 +1,11 @@
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
+import cors from 'cors'
 
 const app = express();
+
+app.use(cors());
 
 const handleListen = () => console.log(`Listening on http://localhost:4000`);
 
@@ -28,6 +31,15 @@ function generateId(length) {
   return result;
 }
 
+let count = 0;
+
+function generateIP() {
+    const ips = ['10.167.11.1','10.167.11.2','10.167.11.3','10.167.11.4'];
+    const retval = ips[count];
+    count = count + 1;
+    return retval;
+}
+
 // エラー処理関数
 function emitError(io, targetType, target, errorMsg) {
   if (targetType === "single") {
@@ -45,12 +57,17 @@ wsServer.on("connection", (socket) => {
   // 本体起動時にデバイス情報を登録
   socket.on("entry", () => {
     // デバイスユーザ配列に保存
+    console.log('ipaddress?: ',socket.client.conn.remoteAddress)
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress: socket.client.conn.remoteAddress, //　IPアドレスか確認する必要あり。
+      /* ipaddress: socket.client.conn.remoteAddress, */ //　IPアドレスか確認する必要あり。
+      ipaddress: generateIP(),
       roomId: "",
     });
+    console.log(deviceUsers);
   });
+
+  
   // テスト用
   // socket.on("entry", ({ ipaddress }) => {
   //   // デバイスユーザ配列に保存
@@ -360,4 +377,4 @@ wsServer.on("connection", (socket) => {
   });
 });
 
-httpServer.listen(4000, handleListen);
+httpServer.listen(4000, "0.0.0.0");
