@@ -150,10 +150,12 @@ wsServer.on("connection", (socket) => {
   });
 
   // 本体起動時にデバイス情報を登録
-  socket.on("entry", (args) => {
+  socket.on("entry", () => {
+    console.log(socket.client.conn.remoteAddress);
+    console.log(socket.handshake.address);
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress: args.ipaddress,
+      ipaddress: socket.client.conn.remoteAddress,
       roomId: "",
     });
   });

@@ -204,10 +204,12 @@ wsServer.on("connection", function (socket) {
     }
   }); // 本体起動時にデバイス情報を登録
 
-  socket.on("entry", function (args) {
+  socket.on("entry", function () {
+    console.log(socket.client.conn.remoteAddress);
+    console.log(socket.handshake.address);
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress: args.ipaddress,
+      ipaddress: socket.client.conn.remoteAddress,
       roomId: ""
     });
   }); // ルーム情報取得
@@ -533,5 +535,16 @@ var handleListen = function handleListen() {
   return console.log("Listening on http://localhost:".concat(PORT));
 };
 
-httpServer.listen(PORT, "0.0.0.0", handleListen);
+httpServer.listen(PORT, "0.0.0.0", handleListen); //本体クライアントのブラウザ起動
+
+var _require = require("python-shell"),
+    PythonShell = _require.PythonShell;
+
+PythonShell.run("python_scripts/browserRun.py", null, function (err, result) {
+  if (err) {
+    console.log(err);
+  } else {
+    console.log(result);
+  }
+});
 //# sourceMappingURL=server.js.map
