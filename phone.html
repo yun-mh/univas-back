@@ -141,7 +141,8 @@
 		var language = document.getElementById("language").value;
 		
     socket.emit("create-room", ({title, username, ipaddress, language}), (response) => {
-			document.getElementById("roomId").value = response.roomId;
+			console.log(response);
+      document.getElementById("roomId").value = response.roomId;
 		});
 	}
 	
