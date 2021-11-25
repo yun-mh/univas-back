@@ -154,7 +154,6 @@ wsServer.on("connection", (socket) => {
       ipaddress: args.ipaddress,
       roomId: "",
     });
-  });
 
   // ルーム情報取得
   socket.on("get-room", ({ roomId }, callback) => {
@@ -425,42 +424,54 @@ wsServer.on("connection", (socket) => {
     }
   });
 
-  //下記AIテスト用
-  socket.on("send-detected-voice", function (args) {
-    let target = users.find((item) => item.ipaddress === "192.168.2.100"); //IPアドレスはAI側から受け取る？
+  //AI用
+  socket.on("send-detected-voice", (args) => {
+    const targetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
 
     try {
       wsServer.emit("emit-log", {
-        username: user.username,
+        username: targetDevice.username,
         comment: args.comment,
         time: args.time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
-        targetId: target.socketId,
+        targetId: targetDevice.socketId,
         errorMsg: "エラーが発生しました。",
       });
     }
   });
 
-  socket.on("send-detected-gesture", function (args) {
-    let user = users.find((item) => item.ipaddress === "192.168.2.100");
+  socket.on("send-detected-gesture", (args) => {
+    const targetDevice = getDeviceByIPAddress(deviceUsers, socket.client.conn.remoteAddress);
 
     try {
       wsServer.emit("emit-reaction", {
-        username: user.username,
+        username: targetDevice.username,
         reaction: args.reaction,
         time: args.time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
-        targetId: target.socketId,
+        targetId: targetDevice.socketId,
         errorMsg: "エラーが発生しました。",
       });
     }
   });
+
+});
 });
 
 const handleListen = () => console.log(`Listening on http://localhost:4000`);
 
 httpServer.listen(4000, "0.0.0.0", handleListen);
+
+//本体クライアントのブラウザ起動
+const {PythonShell} = require('python-shell');
+PythonShell.run('python_scripts/browserRun.py', null, (err, result) => {
+  if (err){
+    console.log(err);
+  }else{
+    console.log(result);
+  }
+});
