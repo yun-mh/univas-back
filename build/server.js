@@ -532,16 +532,5 @@ var handleListen = function handleListen() {
   return console.log("Listening on http://localhost:4000");
 };
 
-httpServer.listen(4000, "0.0.0.0", handleListen); //本体クライアントのブラウザ起動
-
-var _require = require('python-shell'),
-    PythonShell = _require.PythonShell;
-
-PythonShell.run('python_scripts/browserRun.py', null, function (err, result) {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log(result);
-  }
-});
+httpServer.listen(4000, "0.0.0.0", handleListen);
 //# sourceMappingURL=server.js.map
