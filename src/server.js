@@ -178,7 +178,6 @@ wsServer.on("connection", (socket) => {
     "create-room",
     ({ title, username, ipaddress, language }, callback) => {
       const roomId = generateRoomId(5);
-      console.log(roomId);
 
       rooms.push({
         title: title,
@@ -206,8 +205,6 @@ wsServer.on("connection", (socket) => {
         );
         deviceSocket.join(roomId);
       }
-
-      console.log(roomId);
 
       socket.join(roomId);
 
