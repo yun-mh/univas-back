@@ -13,6 +13,8 @@ import {
   getDeviceByIPAddress,
 } from "./utils";
 
+const PORT = process.env.PORT || 4000;
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -474,6 +476,6 @@ wsServer.on("connection", (socket) => {
   });
 });
 
-const handleListen = () => console.log(`Listening on http://localhost:4000`);
+const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
 
-httpServer.listen(4000, "0.0.0.0", handleListen);
+httpServer.listen(PORT, "0.0.0.0", handleListen);
