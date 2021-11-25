@@ -103,7 +103,7 @@
 
     <hr>
 
-    <form action="http://localhost:4000/send-log-url" method="POST">
+    <form action="https://univas.herokuapp.com/send-log-url" method="POST">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="logRoomId" readonly>
@@ -118,7 +118,7 @@
 
     <hr>
 
-    <form action="http://localhost:4000/get-log-url" method="GET">
+    <form action="https://univas.herokuapp.com/get-log-url" method="GET">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="getLogRoomId" readonly>
@@ -128,11 +128,11 @@
     </form>
 
     </div>
-    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+    <script src="https://univas.herokuapp.com/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("http://localhost:4000");	
+  const socket = io.connect("https://univas.herokuapp.com/");	
   
   function createRoom() {
 		var title = document.getElementById("title").value;

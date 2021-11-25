@@ -156,323 +156,319 @@ wsServer.on("connection", (socket) => {
       ipaddress: args.ipaddress,
       roomId: "",
     });
+  });
 
-    // ルーム情報取得
-    socket.on("get-room", ({ roomId }, callback) => {
-      const currentRoom = rooms.find((room) => room.roomId === roomId);
-      if (!currentRoom) {
-        emitErrorToSelf(socket, { errorMsg: "現在のルームを把握できません。" });
-        socket.disconnect(true);
-        return;
+  // ルーム情報取得
+  socket.on("get-room", ({ roomId }, callback) => {
+    const currentRoom = rooms.find((room) => room.roomId === roomId);
+    if (!currentRoom) {
+      emitErrorToSelf(socket, { errorMsg: "現在のルームを把握できません。" });
+      socket.disconnect(true);
+      return;
+    }
+
+    callback({
+      title: currentRoom.title,
+      userList: getUserList(phoneUsers, roomId),
+    });
+  });
+
+  // ルーム作成
+  socket.on(
+    "create-room",
+    ({ title, username, ipaddress, language }, callback) => {
+      const roomId = generateRoomId(5);
+
+      rooms.push({
+        title: title,
+        username: username,
+        ipaddress: ipaddress,
+        language: language,
+        roomId: roomId,
+      });
+
+      phoneUsers.push({
+        socketId: socket.id,
+        ipaddress: ipaddress,
+        roomId: roomId,
+        username: username,
+        language: language,
+        isHost: true,
+      });
+
+      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+      if (targetDevice !== undefined) {
+        targetDevice.roomId = roomId;
+
+        const deviceSocket = wsServer.sockets.sockets.get(
+          targetDevice.socketId
+        );
+        deviceSocket.join(roomId);
       }
+
+      socket.join(roomId);
 
       callback({
-        title: currentRoom.title,
-        userList: getUserList(phoneUsers, roomId),
+        roomId: roomId,
       });
-    });
 
-    // ルーム作成
-    socket.on(
-      "create-room",
-      ({ title, username, ipaddress, language }, callback) => {
-        const roomId = generateRoomId(5);
-
-        rooms.push({
-          title: title,
-          username: username,
-          ipaddress: ipaddress,
-          language: language,
-          roomId: roomId,
-        });
-
-        phoneUsers.push({
-          socketId: socket.id,
-          ipaddress: ipaddress,
-          roomId: roomId,
-          username: username,
-          language: language,
-          isHost: true,
-        });
-
-        const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
-        if (targetDevice !== undefined) {
-          targetDevice.roomId = roomId;
-
-          const deviceSocket = wsServer.sockets.sockets.get(
-            targetDevice.socketId
-          );
-          deviceSocket.join(roomId);
-        }
-
-        socket.join(roomId);
-
-        callback({
-          roomId: roomId,
-        });
-
-        try {
-          wsServer.in(roomId).emit("join-room-effect", {
-            userList: getUserList(phoneUsers, roomId),
-          });
-        } catch {
-          emitErrorToAll(wsServer, {
-            roomId,
-            errorMsg: "エラーが発生しました。",
-          });
-        }
-
-        try {
-          socket
-            .to(targetDevice.socketId)
-            .emit("change-screen-enter", { roomId, username });
-        } catch {
-          emitErrorToSelf(socket, {
-            errorMsg: "本体デバイスを検索できませんでした。",
-          });
-          socket.disconnect(true);
-        }
-
-        console.log("rooms: ", rooms);
-        console.log("phoneUsers: ", phoneUsers);
-        console.log("deviceUsers: ", deviceUsers);
-      }
-    );
-
-    //ルーム参加処理
-    socket.on(
-      "join-room",
-      function ({ username, roomId, ipaddress, language }, callback) {
-        phoneUsers.push({
-          socketId: socket.id,
-          ipaddress: ipaddress,
-          roomId: roomId,
-          username: username,
-          language: language,
-          isHost: false,
-        });
-
-        const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
-        if (targetDevice !== undefined) {
-          targetDevice.roomId = roomId;
-
-          const deviceSocket = wsServer.sockets.sockets.get(
-            targetDevice.socketId
-          );
-          deviceSocket.join(roomId);
-        }
-
-        socket.join(roomId);
-
-        // FIXME: コールバックしないといけないかフロントのコードに合わせて削除してもいいと思う。
-        callback({
+      try {
+        wsServer.in(roomId).emit("join-room-effect", {
           userList: getUserList(phoneUsers, roomId),
         });
-
-        try {
-          wsServer.emit("join-room-effect", {
-            userList: getUserList(phoneUsers, roomId),
-          });
-        } catch (e) {
-          emitErrorToAll(wsServer, {
-            roomId,
-            errorMsg: "エラーが発生しました。",
-          });
-        }
-
-        try {
-          socket
-            .to(targetDevice.socketId)
-            .emit("change-screen-enter", { roomId, username });
-        } catch (e) {
-          emitErrorToSelf(socket, {
-            errorMsg: "本体デバイスを検索できませんでした。",
-          });
-          socket.disconnect(true);
-        }
-
-        console.log("rooms: ", rooms);
-        console.log("phoneUsers: ", phoneUsers);
-        console.log("deviceUsers: ", deviceUsers);
+      } catch {
+        emitErrorToAll(wsServer, {
+          roomId,
+          errorMsg: "エラーが発生しました。",
+        });
       }
-    );
 
-    // ルーム退出
-    socket.on("leave-room", ({ ipaddress }) => {
-      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
-
-      const phoneUser = phoneUsers.find(
-        (phone) => phone.ipaddress === ipaddress
-      );
-
-      if (phoneUser.isHost) {
-        phoneUsers = [];
-        deviceUsers = [];
-        rooms = rooms.filter((room) => room.roomId !== phoneUser.roomId);
-
-        wsServer.emit("change-screen-leave");
-
-        wsServer.emit("terminate-room-effect");
-
-        wsServer.disconnectSockets();
-      } else {
-        const removeIndex = phoneUsers.findIndex(
-          (phone) => phone.ipaddress === ipaddress
-        );
-        phoneUsers.splice(removeIndex, 1);
-
-        deviceUsers = deviceUsers.filter(
-          (device) => device.ipaddress !== ipaddress
-        );
-
-        try {
-          socket.to(targetDevice.socketId).emit("change-screen-leave");
-        } catch (e) {
-          emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
-          socket.disconnect(true);
-        }
-
-        try {
-          wsServer.emit("leave-room-effect", {
-            userList: getUserList(phoneUsers, phoneUser.roomId),
-          });
-
-          if (targetDevice !== undefined) {
-            const deviceSocket = wsServer.sockets.sockets.get(
-              targetDevice.socketId
-            );
-            deviceSocket.leave(phoneUser.roomId);
-          }
-
-          socket.leave(phoneUser.roomId);
-        } catch (e) {
-          emitErrorToAll(wsServer, {
-            roomId: phoneUser.roomId,
-            errorMsg: "エラーが発生しました。",
-          });
-        }
+      try {
+        socket
+          .to(targetDevice.socketId)
+          .emit("change-screen-enter", { roomId, username });
+      } catch {
+        emitErrorToSelf(socket, {
+          errorMsg: "本体デバイスを検索できませんでした。",
+        });
+        socket.disconnect(true);
       }
+
       console.log("rooms: ", rooms);
       console.log("phoneUsers: ", phoneUsers);
       console.log("deviceUsers: ", deviceUsers);
-    });
+    }
+  );
 
-    // ルーム解散
-    socket.on("terminate-room", ({ roomId }) => {
-      phoneUsers = phoneUsers.filter((phone) => phone.roomId !== roomId);
-      deviceUsers = deviceUsers.filter((device) => device.roomId !== roomId);
-      rooms = rooms.filter((room) => room.roomId !== roomId);
+  //ルーム参加処理
+  socket.on(
+    "join-room",
+    function ({ username, roomId, ipaddress, language }, callback) {
+      phoneUsers.push({
+        socketId: socket.id,
+        ipaddress: ipaddress,
+        roomId: roomId,
+        username: username,
+        language: language,
+        isHost: false,
+      });
+
+      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+      if (targetDevice !== undefined) {
+        targetDevice.roomId = roomId;
+
+        const deviceSocket = wsServer.sockets.sockets.get(
+          targetDevice.socketId
+        );
+        deviceSocket.join(roomId);
+      }
+
+      socket.join(roomId);
+
+      // FIXME: コールバックしないといけないかフロントのコードに合わせて削除してもいいと思う。
+      callback({
+        userList: getUserList(phoneUsers, roomId),
+      });
 
       try {
-        wsServer.emit("terminate-room-effect");
-
-        wsServer.emit("change-screen-leave");
-
-        wsServer.disconnectSockets(roomId);
+        wsServer.emit("join-room-effect", {
+          userList: getUserList(phoneUsers, roomId),
+        });
       } catch (e) {
         emitErrorToAll(wsServer, {
           roomId,
           errorMsg: "エラーが発生しました。",
         });
+      }
+
+      try {
+        socket
+          .to(targetDevice.socketId)
+          .emit("change-screen-enter", { roomId, username });
+      } catch (e) {
+        emitErrorToSelf(socket, {
+          errorMsg: "本体デバイスを検索できませんでした。",
+        });
         socket.disconnect(true);
       }
 
       console.log("rooms: ", rooms);
       console.log("phoneUsers: ", phoneUsers);
       console.log("deviceUsers: ", deviceUsers);
-    });
+    }
+  );
 
-    // アクセシビリティ更新
-    socket.on(
-      "change-accessibility",
-      ({ fontSize_per, fontColor, ipaddress }) => {
-        const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+  // ルーム退出
+  socket.on("leave-room", ({ ipaddress }) => {
+    const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+
+    const phoneUser = phoneUsers.find((phone) => phone.ipaddress === ipaddress);
+
+    if (phoneUser.isHost) {
+      phoneUsers = [];
+      deviceUsers = [];
+      rooms = rooms.filter((room) => room.roomId !== phoneUser.roomId);
+
+      wsServer.emit("change-screen-leave");
+
+      wsServer.emit("terminate-room-effect");
+
+      wsServer.disconnectSockets();
+    } else {
+      const removeIndex = phoneUsers.findIndex(
+        (phone) => phone.ipaddress === ipaddress
+      );
+      phoneUsers.splice(removeIndex, 1);
+
+      deviceUsers = deviceUsers.filter(
+        (device) => device.ipaddress !== ipaddress
+      );
+
+      try {
+        socket.to(targetDevice.socketId).emit("change-screen-leave");
+      } catch (e) {
+        emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
+        socket.disconnect(true);
+      }
+
+      try {
+        wsServer.emit("leave-room-effect", {
+          userList: getUserList(phoneUsers, phoneUser.roomId),
+        });
 
         if (targetDevice !== undefined) {
-          try {
-            socket
-              .to(targetDevice.socketId)
-              .emit("change-accessibility-effect", { fontSize_per, fontColor });
-          } catch (error) {
-            emitErrorToSelf(socket, {
-              errorMsg: "アクセシビリティ変更にエラーが発生しました。",
-            });
-          }
+          const deviceSocket = wsServer.sockets.sockets.get(
+            targetDevice.socketId
+          );
+          deviceSocket.leave(phoneUser.roomId);
         }
+
+        socket.leave(phoneUser.roomId);
+      } catch (e) {
+        emitErrorToAll(wsServer, {
+          roomId: phoneUser.roomId,
+          errorMsg: "エラーが発生しました。",
+        });
       }
-    );
+    }
+    console.log("rooms: ", rooms);
+    console.log("phoneUsers: ", phoneUsers);
+    console.log("deviceUsers: ", deviceUsers);
+  });
 
-    // 議題変更
-    socket.on("updated-title", ({ roomId, title }) => {
-      const targetRoom = rooms.find((room) => room.roomId === roomId);
+  // ルーム解散
+  socket.on("terminate-room", ({ roomId }) => {
+    phoneUsers = phoneUsers.filter((phone) => phone.roomId !== roomId);
+    deviceUsers = deviceUsers.filter((device) => device.roomId !== roomId);
+    rooms = rooms.filter((room) => room.roomId !== roomId);
 
-      if (targetRoom !== undefined) {
-        try {
-          wsServer
-            .in(targetRoom.roomId)
-            .emit("updated-title-effect", { title });
-        } catch (error) {
-          emitErrorToAll(wsServer, {
-            roomId: targetRoom.roomId,
-            errorMsg: "タイトル更新にエラーが発生しました。",
-          });
-        }
-      }
-    });
+    try {
+      wsServer.emit("terminate-room-effect");
 
-    // モード切替
-    socket.on("change-mode", ({ ipaddress, mode }) => {
+      wsServer.emit("change-screen-leave");
+
+      wsServer.disconnectSockets(roomId);
+    } catch (e) {
+      emitErrorToAll(wsServer, {
+        roomId,
+        errorMsg: "エラーが発生しました。",
+      });
+      socket.disconnect(true);
+    }
+
+    console.log("rooms: ", rooms);
+    console.log("phoneUsers: ", phoneUsers);
+    console.log("deviceUsers: ", deviceUsers);
+  });
+
+  // アクセシビリティ更新
+  socket.on(
+    "change-accessibility",
+    ({ fontSize_per, fontColor, ipaddress }) => {
       const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
 
       if (targetDevice !== undefined) {
         try {
-          socket.to(targetDevice.socketId).emit("change-mode-effect", { mode });
+          socket
+            .to(targetDevice.socketId)
+            .emit("change-accessibility-effect", { fontSize_per, fontColor });
         } catch (error) {
-          emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
+          emitErrorToSelf(socket, {
+            errorMsg: "アクセシビリティ変更にエラーが発生しました。",
+          });
         }
       }
-    });
+    }
+  );
 
-    //AI用
-    socket.on("send-detected-voice", (args) => {
-      const targetDevice = getDeviceByIPAddress(
-        deviceUsers,
-        socket.client.conn.remoteAddress
-      );
+  // 議題変更
+  socket.on("updated-title", ({ roomId, title }) => {
+    const targetRoom = rooms.find((room) => room.roomId === roomId);
 
+    if (targetRoom !== undefined) {
       try {
-        wsServer.emit("emit-log", {
-          username: targetDevice.username,
-          comment: args.comment,
-          time: args.time,
-        });
-      } catch (e) {
-        emitErrorToDevice(socket, {
-          targetId: targetDevice.socketId,
-          errorMsg: "エラーが発生しました。",
+        wsServer.in(targetRoom.roomId).emit("updated-title-effect", { title });
+      } catch (error) {
+        emitErrorToAll(wsServer, {
+          roomId: targetRoom.roomId,
+          errorMsg: "タイトル更新にエラーが発生しました。",
         });
       }
-    });
+    }
+  });
 
-    socket.on("send-detected-gesture", (args) => {
-      const targetDevice = getDeviceByIPAddress(
-        deviceUsers,
-        socket.client.conn.remoteAddress
-      );
+  // モード切替
+  socket.on("change-mode", ({ ipaddress, mode }) => {
+    const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
 
+    if (targetDevice !== undefined) {
       try {
-        wsServer.emit("emit-reaction", {
-          username: targetDevice.username,
-          reaction: args.reaction,
-          time: args.time,
-        });
-      } catch (e) {
-        emitErrorToDevice(socket, {
-          targetId: targetDevice.socketId,
-          errorMsg: "エラーが発生しました。",
-        });
+        socket.to(targetDevice.socketId).emit("change-mode-effect", { mode });
+      } catch (error) {
+        emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
       }
-    });
+    }
+  });
+
+  //AI用
+  socket.on("send-detected-voice", (args) => {
+    const targetDevice = getDeviceByIPAddress(
+      deviceUsers,
+      socket.client.conn.remoteAddress
+    );
+
+    try {
+      wsServer.emit("emit-log", {
+        username: targetDevice.username,
+        comment: args.comment,
+        time: args.time,
+      });
+    } catch (e) {
+      emitErrorToDevice(socket, {
+        targetId: targetDevice.socketId,
+        errorMsg: "エラーが発生しました。",
+      });
+    }
+  });
+
+  socket.on("send-detected-gesture", (args) => {
+    const targetDevice = getDeviceByIPAddress(
+      deviceUsers,
+      socket.client.conn.remoteAddress
+    );
+
+    try {
+      wsServer.emit("emit-reaction", {
+        username: targetDevice.username,
+        reaction: args.reaction,
+        time: args.time,
+      });
+    } catch (e) {
+      emitErrorToDevice(socket, {
+        targetId: targetDevice.socketId,
+        errorMsg: "エラーが発生しました。",
+      });
+    }
   });
 });
 
