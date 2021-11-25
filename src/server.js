@@ -151,7 +151,7 @@ wsServer.on("connection", (socket) => {
 
   // 本体起動時にデバイス情報を登録
   socket.on("entry", () => {
-    console.log(socket.client.conn.remoteAddress);
+    console.log(socket.handshake.headers["x-real-ip"]);
     console.log(socket.handshake.address);
     deviceUsers.push({
       socketId: socket.id,
