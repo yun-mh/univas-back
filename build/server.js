@@ -18,6 +18,7 @@ var _constants = require("./constants");
 
 var _utils = require("./utils");
 
+var PORT = process.env.PORT || 4000;
 var app = (0, _express["default"])();
 app.use(_express["default"].json());
 app.use(_express["default"].urlencoded({
@@ -529,8 +530,8 @@ wsServer.on("connection", function (socket) {
 });
 
 var handleListen = function handleListen() {
-  return console.log("Listening on http://localhost:4000");
+  return console.log("Listening on http://localhost:".concat(PORT));
 };
 
-httpServer.listen(4000, "0.0.0.0", handleListen);
+httpServer.listen(PORT, "0.0.0.0", handleListen);
 //# sourceMappingURL=server.js.map
