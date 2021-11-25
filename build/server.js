@@ -238,7 +238,6 @@ wsServer.on("connection", function (socket) {
         ipaddress = _ref4.ipaddress,
         language = _ref4.language;
     var roomId = (0, _utils.generateRoomId)(5);
-    console.log(roomId);
     rooms.push({
       title: title,
       username: username,
@@ -262,7 +261,6 @@ wsServer.on("connection", function (socket) {
       deviceSocket.join(roomId);
     }
 
-    console.log(roomId);
     socket.join(roomId);
     callback({
       roomId: roomId

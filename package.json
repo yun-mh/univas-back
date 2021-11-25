@@ -8,6 +8,7 @@
     "npm": "6.14.5"
   },
   "scripts": {
+    "dev": "nodemon",
     "clean": "rm -rf build && mkdir build",
     "build-babel": "npm run clean && babel -d ./build ./src -s",
     "start": "node ./build/server.js",

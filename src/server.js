@@ -475,3 +475,13 @@ wsServer.on("connection", (socket) => {
 const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
 
 httpServer.listen(PORT, "0.0.0.0", handleListen);
+
+//本体クライアントのブラウザ起動
+const { PythonShell } = require("python-shell");
+PythonShell.run("python_scripts/browserRun.py", null, (err, result) => {
+  if (err) {
+    console.log(err);
+  } else {
+    console.log(result);
+  }
+});
