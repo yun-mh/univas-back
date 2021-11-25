@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "express": "^4.17.1",
+    "python-shell": "^3.0.1",
     "socket.io": "^4.2.0",
     "sqlite3": "^5.0.2"
   }
