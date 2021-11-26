@@ -434,7 +434,7 @@ wsServer.on("connection", (socket) => {
   socket.on("send-detected-voice", (args) => {
     const targetDevice = getDeviceByIPAddress(
       deviceUsers,
-      socket.client.conn.remoteAddress
+      uniqueId
     );
 
     try {
@@ -454,7 +454,7 @@ wsServer.on("connection", (socket) => {
   socket.on("send-detected-gesture", (args) => {
     const targetDevice = getDeviceByIPAddress(
       deviceUsers,
-      socket.client.conn.remoteAddress
+      uniqueId
     );
 
     try {
@@ -475,13 +475,3 @@ wsServer.on("connection", (socket) => {
 const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
 
 httpServer.listen(PORT, "0.0.0.0", handleListen);
-
-//本体クライアントのブラウザ起動
-const { PythonShell } = require("python-shell");
-PythonShell.run("python_scripts/browserRun.py", null, (err, result) => {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log(result);
-  }
-});
