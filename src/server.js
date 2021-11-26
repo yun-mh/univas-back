@@ -151,8 +151,12 @@ wsServer.on("connection", (socket) => {
 
   // 本体起動時にデバイス情報を登録
   socket.on("entry", () => {
-    console.log(socket.handshake.headers["x-real-ip"]);
-    console.log(socket.handshake.address);
+    console.log("request remoteAddress: ", socket.request.socket.remoteAddress);
+    console.log("handshake: ", socket.handshake.address);
+    console.log(
+      "client conn remoteAddress: ",
+      socket.client.conn.remoteAddress
+    );
     deviceUsers.push({
       socketId: socket.id,
       ipaddress: socket.client.conn.remoteAddress,
@@ -479,11 +483,11 @@ const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
 httpServer.listen(PORT, "0.0.0.0", handleListen);
 
 //本体クライアントのブラウザ起動
-const { PythonShell } = require("python-shell");
-PythonShell.run("python_scripts/browserRun.py", null, (err, result) => {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log(result);
-  }
-});
+// const { PythonShell } = require("python-shell");
+// PythonShell.run("python_scripts/browserRun.py", null, (err, result) => {
+//   if (err) {
+//     console.log(err);
+//   } else {
+//     console.log(result);
+//   }
+// });
