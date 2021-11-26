@@ -427,7 +427,7 @@ wsServer.on("connection", (socket) => {
     }
   });
 
-  //AI用
+  // 音声検知
   socket.on("send-detected-voice", (args) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, args.uniqueId);
 
@@ -445,6 +445,7 @@ wsServer.on("connection", (socket) => {
     }
   });
 
+  // ジェスチャー検知
   socket.on("send-detected-gesture", (args) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, args.uniqueId);
 
