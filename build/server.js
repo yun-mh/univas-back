@@ -150,7 +150,7 @@ wsServer.on("connection", function (socket) {
         targetDevice = deviceUsers.find(function (device) {
           var _targetPhone;
 
-          return device.ipaddress === ((_targetPhone = targetPhone) === null || _targetPhone === void 0 ? void 0 : _targetPhone.ipaddress);
+          return device.uniqueId === ((_targetPhone = targetPhone) === null || _targetPhone === void 0 ? void 0 : _targetPhone.uniqueId);
         });
       } else {
         targetDevice = deviceUsers.find(function (device) {
@@ -159,17 +159,17 @@ wsServer.on("connection", function (socket) {
         targetPhone = phoneUsers.find(function (phone) {
           var _targetDevice;
 
-          return phone.ipaddress === ((_targetDevice = targetDevice) === null || _targetDevice === void 0 ? void 0 : _targetDevice.ipaddress);
+          return phone.uniqueId === ((_targetDevice = targetDevice) === null || _targetDevice === void 0 ? void 0 : _targetDevice.uniqueId);
         });
       }
 
       var roomId = (_targetPhone2 = targetPhone) === null || _targetPhone2 === void 0 ? void 0 : _targetPhone2.roomId;
-      var ipaddress = (_targetPhone3 = targetPhone) === null || _targetPhone3 === void 0 ? void 0 : _targetPhone3.ipaddress;
+      var uniqueId = (_targetPhone3 = targetPhone) === null || _targetPhone3 === void 0 ? void 0 : _targetPhone3.uniqueId;
       phoneUsers = phoneUsers.filter(function (phone) {
-        return phone.ipaddress !== ipaddress;
+        return phone.uniqueId !== uniqueId;
       });
       deviceUsers = deviceUsers.filter(function (device) {
-        return device.ipaddress !== ipaddress;
+        return device.uniqueId !== uniqueId;
       });
 
       if ((_targetPhone4 = targetPhone) !== null && _targetPhone4 !== void 0 && _targetPhone4.isHost) {
@@ -204,19 +204,17 @@ wsServer.on("connection", function (socket) {
     }
   }); // 本体起動時にデバイス情報を登録
 
-  socket.on("entry", function () {
-    console.log("request remoteAddress: ", socket.request.socket.remoteAddress);
-    console.log("handshake: ", socket.handshake.address);
-    console.log("client conn remoteAddress: ", socket.client.conn.remoteAddress);
+  socket.on("entry", function (_ref3) {
+    var uniqueId = _ref3.uniqueId;
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress: socket.client.conn.remoteAddress,
+      uniqueId: uniqueId,
       roomId: ""
     });
   }); // ルーム情報取得
 
-  socket.on("get-room", function (_ref3, callback) {
-    var roomId = _ref3.roomId;
+  socket.on("get-room", function (_ref4, callback) {
+    var roomId = _ref4.roomId;
     var currentRoom = rooms.find(function (room) {
       return room.roomId === roomId;
     });
@@ -235,28 +233,28 @@ wsServer.on("connection", function (socket) {
     });
   }); // ルーム作成
 
-  socket.on("create-room", function (_ref4, callback) {
-    var title = _ref4.title,
-        username = _ref4.username,
-        ipaddress = _ref4.ipaddress,
-        language = _ref4.language;
+  socket.on("create-room", function (_ref5, callback) {
+    var title = _ref5.title,
+        username = _ref5.username,
+        uniqueId = _ref5.uniqueId,
+        language = _ref5.language;
     var roomId = (0, _utils.generateRoomId)(5);
     rooms.push({
       title: title,
       username: username,
-      ipaddress: ipaddress,
+      uniqueId: uniqueId,
       language: language,
       roomId: roomId
     });
     phoneUsers.push({
       socketId: socket.id,
-      ipaddress: ipaddress,
+      uniqueId: uniqueId,
       roomId: roomId,
       username: username,
       language: language,
       isHost: true
     });
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, ipaddress);
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
       targetDevice.roomId = roomId;
@@ -297,20 +295,20 @@ wsServer.on("connection", function (socket) {
     console.log("deviceUsers: ", deviceUsers);
   }); //ルーム参加処理
 
-  socket.on("join-room", function (_ref5, callback) {
-    var username = _ref5.username,
-        roomId = _ref5.roomId,
-        ipaddress = _ref5.ipaddress,
-        language = _ref5.language;
+  socket.on("join-room", function (_ref6, callback) {
+    var username = _ref6.username,
+        roomId = _ref6.roomId,
+        uniqueId = _ref6.uniqueId,
+        language = _ref6.language;
     phoneUsers.push({
       socketId: socket.id,
-      ipaddress: ipaddress,
+      uniqueId: uniqueId,
       roomId: roomId,
       username: username,
       language: language,
       isHost: false
     });
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, ipaddress);
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
       targetDevice.roomId = roomId;
@@ -352,11 +350,11 @@ wsServer.on("connection", function (socket) {
     console.log("deviceUsers: ", deviceUsers);
   }); // ルーム退出
 
-  socket.on("leave-room", function (_ref6) {
-    var ipaddress = _ref6.ipaddress;
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, ipaddress);
+  socket.on("leave-room", function (_ref7) {
+    var uniqueId = _ref7.uniqueId;
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var phoneUser = phoneUsers.find(function (phone) {
-      return phone.ipaddress === ipaddress;
+      return phone.uniqueId === uniqueId;
     });
 
     if (phoneUser.isHost) {
@@ -370,11 +368,11 @@ wsServer.on("connection", function (socket) {
       wsServer.disconnectSockets();
     } else {
       var removeIndex = phoneUsers.findIndex(function (phone) {
-        return phone.ipaddress === ipaddress;
+        return phone.uniqueId === uniqueId;
       });
       phoneUsers.splice(removeIndex, 1);
       deviceUsers = deviceUsers.filter(function (device) {
-        return device.ipaddress !== ipaddress;
+        return device.uniqueId !== uniqueId;
       });
 
       try {
@@ -410,8 +408,8 @@ wsServer.on("connection", function (socket) {
     console.log("deviceUsers: ", deviceUsers);
   }); // ルーム解散
 
-  socket.on("terminate-room", function (_ref7) {
-    var roomId = _ref7.roomId;
+  socket.on("terminate-room", function (_ref8) {
+    var roomId = _ref8.roomId;
     phoneUsers = phoneUsers.filter(function (phone) {
       return phone.roomId !== roomId;
     });
@@ -439,11 +437,11 @@ wsServer.on("connection", function (socket) {
     console.log("deviceUsers: ", deviceUsers);
   }); // アクセシビリティ更新
 
-  socket.on("change-accessibility", function (_ref8) {
-    var fontSize_per = _ref8.fontSize_per,
-        fontColor = _ref8.fontColor,
-        ipaddress = _ref8.ipaddress;
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, ipaddress);
+  socket.on("change-accessibility", function (_ref9) {
+    var fontSize_per = _ref9.fontSize_per,
+        fontColor = _ref9.fontColor,
+        uniqueId = _ref9.uniqueId;
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
       try {
@@ -459,9 +457,9 @@ wsServer.on("connection", function (socket) {
     }
   }); // 議題変更
 
-  socket.on("updated-title", function (_ref9) {
-    var roomId = _ref9.roomId,
-        title = _ref9.title;
+  socket.on("updated-title", function (_ref10) {
+    var roomId = _ref10.roomId,
+        title = _ref10.title;
     var targetRoom = rooms.find(function (room) {
       return room.roomId === roomId;
     });
@@ -480,10 +478,10 @@ wsServer.on("connection", function (socket) {
     }
   }); // モード切替
 
-  socket.on("change-mode", function (_ref10) {
-    var ipaddress = _ref10.ipaddress,
-        mode = _ref10.mode;
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, ipaddress);
+  socket.on("change-mode", function (_ref11) {
+    var uniqueId = _ref11.uniqueId,
+        mode = _ref11.mode;
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
       try {
@@ -496,10 +494,10 @@ wsServer.on("connection", function (socket) {
         });
       }
     }
-  }); //AI用
+  }); // 音声検知
 
   socket.on("send-detected-voice", function (args) {
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, socket.client.conn.remoteAddress);
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, args.uniqueId);
 
     try {
       wsServer.emit("emit-log", {
@@ -513,9 +511,10 @@ wsServer.on("connection", function (socket) {
         errorMsg: "エラーが発生しました。"
       });
     }
-  });
+  }); // ジェスチャー検知
+
   socket.on("send-detected-gesture", function (args) {
-    var targetDevice = (0, _utils.getDeviceByIPAddress)(deviceUsers, socket.client.conn.remoteAddress);
+    var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, args.uniqueId);
 
     try {
       wsServer.emit("emit-reaction", {
@@ -536,13 +535,5 @@ var handleListen = function handleListen() {
   return console.log("Listening on http://localhost:".concat(PORT));
 };
 
-httpServer.listen(PORT, "0.0.0.0", handleListen); //本体クライアントのブラウザ起動
-// const { PythonShell } = require("python-shell");
-// PythonShell.run("python_scripts/browserRun.py", null, (err, result) => {
-//   if (err) {
-//     console.log(err);
-//   } else {
-//     console.log(result);
-//   }
-// });
+httpServer.listen(PORT, "0.0.0.0", handleListen);
 //# sourceMappingURL=server.js.map
