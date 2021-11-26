@@ -18,8 +18,8 @@ export function getUserList(users, roomId) {
 }
 
 // デバイスの取得
-export function getDeviceByIPAddress(deviceUsers, ipaddress) {
-  return deviceUsers.find((device) => device.ipaddress === ipaddress);
+export function getDeviceByUniqueId(deviceUsers, uniqueId) {
+  return deviceUsers.find((device) => device.uniqueId === uniqueId);
 }
 
 // エラーエミット(全体向け)
