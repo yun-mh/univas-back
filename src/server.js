@@ -17,8 +17,6 @@ import {
 
 const PORT = process.env.PORT || 4000;
 
-console.log(process.env.TRANSLATOR_KEY_ID);
-
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
