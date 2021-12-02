@@ -30,16 +30,16 @@
       </div>
     </div>
 
-    <script src="https://univas.herokuapp.com/socket.io/socket.io.js"></script>
+    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("https://univas.herokuapp.com/");	
+  const socket = io.connect("http://localhost:4000/");	
 
   function sendEntry() {
     const ipaddress = document.getElementById("ipaddress").value;
 
-    socket.emit("entry", { ipaddress });
+    socket.emit("entry", { uniqueId: ipaddress });
   }
 
   function getRoom() {

@@ -128,24 +128,22 @@ wsServer.on("connection", (socket) => {
       } else {
         try {
           if (targetDevice !== undefined) {
+            console.log("Fire!!!!");
             const deviceSocket = wsServer.sockets.sockets.get(
               targetDevice.socketId
             );
-            deviceSocket.leave(roomId);
-            socket.leave(roomId);
 
             wsServer.emit("leave-room-effect", {
               userList: getUserList(phoneUsers, roomId),
             });
+
+            deviceSocket.leave(roomId);
+            socket.leave(roomId);
           }
         } catch (e) {
           emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
         }
       }
-
-      console.log("rooms: ", rooms);
-      console.log("phoneUsers: ", phoneUsers);
-      console.log("deviceUsers: ", deviceUsers);
     }
   });
 
@@ -446,14 +444,14 @@ wsServer.on("connection", (socket) => {
   });
 
   // ジェスチャー検知
-  socket.on("send-detected-gesture", (args) => {
-    const targetDevice = getDeviceByUniqueId(deviceUsers, args.uniqueId);
+  socket.on("send-detected-gesture", ({ uniqueId, reaction, time }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     try {
       wsServer.emit("emit-reaction", {
         username: targetDevice.username,
-        reaction: args.reaction,
-        time: args.time,
+        reaction,
+        time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
@@ -464,6 +462,6 @@ wsServer.on("connection", (socket) => {
   });
 });
 
-const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
+const handleListen = () => console.log(`Listening on port:${PORT}`);
 
 httpServer.listen(PORT, "0.0.0.0", handleListen);
