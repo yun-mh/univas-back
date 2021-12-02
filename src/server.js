@@ -14,7 +14,7 @@ import {
   getUserList,
   getDeviceByUniqueId,
 } from "./utils";
-import * as credentials from "./credentials";
+import * as credentials from "./translateSettings";
 
 const PORT = process.env.PORT || 4000;
 

@@ -24,7 +24,7 @@ var _constants = require("./constants");
 
 var _utils = require("./utils");
 
-var credentials = _interopRequireWildcard(require("./credentials"));
+var credentials = _interopRequireWildcard(require("./translateSettings"));
 
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function _getRequireWildcardCache(nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
