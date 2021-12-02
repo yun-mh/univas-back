@@ -1,6 +1,8 @@
+require("dotenv").config();
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
+import { Translate } from "@google-cloud/translate/build/src/v2";
 
 import { Database } from "./database";
 import { SERVER_DISCONNECT } from "./constants";
@@ -12,9 +14,7 @@ import {
   getUserList,
   getDeviceByUniqueId,
 } from "./utils";
-import { Translate } from "@google-cloud/translate/build/src/v2";
-import  CREDENTIALS  from "../Credential.json"
-import { time } from "console";
+import * as credentials from "./credentials";
 
 const PORT = process.env.PORT || 4000;
 
@@ -25,17 +25,18 @@ app.use(express.urlencoded({ extended: true }));
 const db = new Database();
 
 const translate = new Translate({
-  credentials: CREDENTIALS,
-  projectId: CREDENTIALS.project_id
+  credentials: credentials,
+  projectId: credentials.project_id,
 });
 
+// 翻訳処理
 const translateText = async (text, targetLanguage) => {
   try {
-      let [response] = await translate.translate(text, targetLanguage);
-      return response; 
+    let [response] = await translate.translate(text, targetLanguage);
+    return response;
   } catch (error) {
-      console.log(`Error at translateText --> ${error}`);
-      return null;
+    console.log(`Error at translateText --> ${error}`);
+    return null;
   }
 };
 
@@ -444,47 +445,30 @@ wsServer.on("connection", (socket) => {
   });
 
   // 音声検知
-  socket.on("send-detected-voice", (args) => {
-    const targetDevice = getDeviceByUniqueId(deviceUsers, args.uniqueId);
+  socket.on("send-detected-voice", ({ uniqueId, comment, time }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
-    const chatText = args.comment;
+    for (let i = 0; i < deviceUsers.length; i++) {
+      let socketId = deviceUsers[i].socketId;
+      let deviceUniqueId = deviceUsers[i].uniqueId;
+      let phoneUser = phoneUsers.find(
+        (user) => user.uniqueId === deviceUniqueId
+      );
+      let targetLanguage = phoneUser.language;
 
-    for(let i = 0; i < deviceUsers.length; i++) {
-      let socketId = deviceUsers[i].socketId
-      let uniqueId = deviceUsers[i].uniqueId
-      let phoneUser = phoneUsers.find(user => user.uniqueId === uniqueId)
-      let targetLanguage = phoneUser.language
-
-      console.log(socketId)
-      console.log(uniqueId)
-      console.log(phoneUser)
-      console.log(targetLanguage)
-
-      translateText(chatText, targetLanguage)
-      .then(async (result) => {
-          console.log(i, " = ", socketId, " , ", result)
+      translateText(comment, targetLanguage)
+        .then(async (result) => {
+          console.log(i, " = ", socketId, " , ", result);
           socket.to(socketId).emit("emit-log", {
             username: targetDevice.username,
             comment: result,
-            time: args.time,
-          })
-      }).catch((err) => {
+            time,
+          });
+        })
+        .catch((err) => {
           console.log(err);
-      });
+        });
     }
-
-    // try {
-    //   wsServer.emit("emit-log", {
-    //     username: targetDevice.username,
-    //     comment: args.comment,
-    //     time: args.time,
-    //   });
-    // } catch (e) {
-    //   emitErrorToDevice(socket, {
-    //     targetId: targetDevice.socketId,
-    //     errorMsg: "エラーが発生しました。",
-    //   });
-    // }
   });
 
   // ジェスチャー検知
@@ -503,8 +487,7 @@ wsServer.on("connection", (socket) => {
         errorMsg: "エラーが発生しました。",
       });
     }
-  }); 
-
+  });
 });
 
 const handleListen = () => console.log(`Listening on port:${PORT}`);

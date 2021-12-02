@@ -88,6 +88,11 @@
     console.log("error, 全てのケースに", args)
   })
     
+
+  socket.on("emit-log", (args => {
+    console.log("message = ", args)
+  }))
+  
  </script>
   
 </html>

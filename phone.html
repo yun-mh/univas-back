@@ -60,6 +60,15 @@
     </div>
 
     <div>
+      <h1>チャット機能</h1>
+      <label>
+        <p>chat</p>
+        <input type="text" id="chatText">
+      </label>
+      <input type="button" value="sendChat" onclick="sendChat()">
+    </div>
+
+    <div>
       <h1>画面調節機能</h1>
       <label>
         <p>ipaddress</p>
@@ -103,7 +112,7 @@
 
     <hr>
 
-    <form action="https://univas.herokuapp.com/send-log-url" method="POST">
+    <form action="http://localhost:4000/send-log-url" method="POST">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="logRoomId" readonly>
@@ -118,7 +127,7 @@
 
     <hr>
 
-    <form action="https://univas.herokuapp.com/get-log-url" method="GET">
+    <form action="http://localhost:4000/get-log-url" method="GET">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="getLogRoomId" readonly>
@@ -188,6 +197,13 @@
 		var titleTitle = document.getElementById("titleTitle").value;
 
     socket.emit("updated-title", ({roomId: titleRoomId, title: titleTitle}));
+  }
+
+  function sendChat() {
+    var chatText = document.getElementById("chatText").value;
+		var ipaddress = document.getElementById("joinIpaddress").value;
+    var time = "aaa"
+    socket.emit("send-detected-voice", ({uniqueId: ipaddress,comment: chatText, time: time}));
   }
 
   socket.on("leave-room-effect", (args) => {
