@@ -30,11 +30,11 @@
       </div>
     </div>
 
-    <script src="http://localhost:4000/socket.io/socket.io.js"></script>
+    <script src="https://univas.herokuapp.com/socket.io/socket.io.js"></script>
   </body>
 
   <script>
-  const socket = io.connect("http://localhost:4000/");	
+  const socket = io.connect("https://univas.herokuapp.com/");	
 
   function sendEntry() {
     const ipaddress = document.getElementById("ipaddress").value;
