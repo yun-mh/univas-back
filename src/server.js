@@ -12,6 +12,7 @@ import {
   emitErrorToAll,
   generateRoomId,
   getUserList,
+  getDeviceByUsername,
   getDeviceByUniqueId,
 } from "./utils";
 
@@ -20,6 +21,7 @@ const PORT = process.env.PORT || 4000;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 
 const db = new Database();
 
@@ -477,6 +479,11 @@ wsServer.on("connection", (socket) => {
   // 音声検知
   socket.on("send-detected-voice", ({ uniqueId, comment, time }) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
+        
+    const devideUsername = getDeviceByUsername(
+      phoneUsers,
+      args.uniqueId
+    );
 
     for (let i = 0; i < deviceUsers.length; i++) {
       let socketId = deviceUsers[i].socketId;
@@ -490,7 +497,7 @@ wsServer.on("connection", (socket) => {
         .then(async (result) => {
           console.log(i, " = ", socketId, " , ", result);
           socket.to(socketId).emit("emit-log", {
-            username: targetDevice.username,
+            username: devideUsername.username,
             comment: result,
             time,
           });
@@ -504,10 +511,15 @@ wsServer.on("connection", (socket) => {
   // ジェスチャー検知
   socket.on("send-detected-gesture", ({ uniqueId, reaction, time }) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
+    
+    const devideUsername = getDeviceByUsername(
+      phoneUsers,
+      args.uniqueId
+    );
 
     try {
       wsServer.emit("emit-reaction", {
-        username: targetDevice.username,
+        username: devideUsername.username,
         reaction,
         time,
       });
