@@ -112,7 +112,6 @@ wsServer.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log("reason: ", reason);
     if (reason !== SERVER_DISCONNECT) {
-      console.log("ここだよ");
       const currentSocketId = socket.id;
 
       const isPhoneUser =
@@ -138,13 +137,23 @@ wsServer.on("connection", (socket) => {
         );
       }
 
-      const roomId = targetPhone?.roomId;
-      const uniqueId = targetPhone?.uniqueId;
+      const roomId =
+        targetPhone?.roomId === undefined
+          ? targetDevice?.roomId
+          : targetPhone?.roomId;
+      const uniqueId =
+        targetPhone?.uniqueId === undefined
+          ? targetDevice?.uniqueId
+          : targetPhone?.uniqueId;
+
+      console.log("roomId, uniqueID: ", roomId, uniqueId);
 
       phoneUsers = phoneUsers.filter((phone) => phone.uniqueId !== uniqueId);
       deviceUsers = deviceUsers.filter(
         (device) => device.uniqueId !== uniqueId
       );
+
+      console.log("phoneUsers, deviceUsers: ", phoneUsers, deviceUsers);
 
       if (targetPhone?.isHost) {
         phoneUsers = [];

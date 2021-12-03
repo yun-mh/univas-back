@@ -196,9 +196,8 @@ wsServer.on("connection", function (socket) {
     console.log("reason: ", reason);
 
     if (reason !== _constants.SERVER_DISCONNECT) {
-      var _targetPhone2, _targetPhone3, _targetPhone4;
+      var _targetPhone2, _targetDevice2, _targetPhone3, _targetPhone4, _targetDevice3, _targetPhone5, _targetPhone6;
 
-      console.log("ここだよ");
       var currentSocketId = socket.id;
       var isPhoneUser = phoneUsers.find(function (phone) {
         return phone.socketId === currentSocketId;
@@ -225,16 +224,18 @@ wsServer.on("connection", function (socket) {
         });
       }
 
-      var roomId = (_targetPhone2 = targetPhone) === null || _targetPhone2 === void 0 ? void 0 : _targetPhone2.roomId;
-      var uniqueId = (_targetPhone3 = targetPhone) === null || _targetPhone3 === void 0 ? void 0 : _targetPhone3.uniqueId;
+      var roomId = ((_targetPhone2 = targetPhone) === null || _targetPhone2 === void 0 ? void 0 : _targetPhone2.roomId) === undefined ? (_targetDevice2 = targetDevice) === null || _targetDevice2 === void 0 ? void 0 : _targetDevice2.roomId : (_targetPhone3 = targetPhone) === null || _targetPhone3 === void 0 ? void 0 : _targetPhone3.roomId;
+      var uniqueId = ((_targetPhone4 = targetPhone) === null || _targetPhone4 === void 0 ? void 0 : _targetPhone4.uniqueId) === undefined ? (_targetDevice3 = targetDevice) === null || _targetDevice3 === void 0 ? void 0 : _targetDevice3.uniqueId : (_targetPhone5 = targetPhone) === null || _targetPhone5 === void 0 ? void 0 : _targetPhone5.uniqueId;
+      console.log("roomId, uniqueID: ", roomId, uniqueId);
       phoneUsers = phoneUsers.filter(function (phone) {
         return phone.uniqueId !== uniqueId;
       });
       deviceUsers = deviceUsers.filter(function (device) {
         return device.uniqueId !== uniqueId;
       });
+      console.log("phoneUsers, deviceUsers: ", phoneUsers, deviceUsers);
 
-      if ((_targetPhone4 = targetPhone) !== null && _targetPhone4 !== void 0 && _targetPhone4.isHost) {
+      if ((_targetPhone6 = targetPhone) !== null && _targetPhone6 !== void 0 && _targetPhone6.isHost) {
         phoneUsers = [];
         deviceUsers = [];
         rooms = rooms.filter(function (room) {
