@@ -178,11 +178,13 @@ wsServer.on("connection", (socket) => {
 
   // 本体起動時にデバイス情報を登録
   socket.on("entry", ({ uniqueId }) => {
+    console.log(uniqueId);
     deviceUsers.push({
       socketId: socket.id,
       uniqueId,
       roomId: "",
     });
+    console.log(deviceUsers);
   });
 
   // ルーム情報取得
@@ -225,11 +227,13 @@ wsServer.on("connection", (socket) => {
 
       const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
       if (targetDevice !== undefined) {
+        console.log("targetDevice: ", targetDevice);
         targetDevice.roomId = roomId;
 
         const deviceSocket = wsServer.sockets.sockets.get(
           targetDevice.socketId
         );
+        console.log("deviceSocket: ", deviceSocket);
         deviceSocket.join(roomId);
       }
 
