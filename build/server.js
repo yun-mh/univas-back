@@ -579,8 +579,10 @@ wsServer.on("connection", function (socket) {
     var uniqueId = _ref13.uniqueId,
         comment = _ref13.comment,
         time = _ref13.time;
+    console.log("uniqueId, comment, time: ", uniqueId, comment, time);
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
+    console.log("targetDevice, targetPhone: ", targetDevice, targetPhone);
 
     try {
       var _loop = function _loop(i) {

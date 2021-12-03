@@ -488,9 +488,12 @@ wsServer.on("connection", (socket) => {
 
   // 音声検知
   socket.on("send-detected-voice", ({ uniqueId, comment, time }) => {
+    console.log("uniqueId, comment, time: ", uniqueId, comment, time);
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
+
+    console.log("targetDevice, targetPhone: ", targetDevice, targetPhone);
 
     try {
       for (let i = 0; i < deviceUsers.length; i++) {
