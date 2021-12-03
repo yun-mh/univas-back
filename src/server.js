@@ -110,7 +110,9 @@ wsServer.on("connection", (socket) => {
 
   // 接続切れの処理
   socket.on("disconnect", (reason) => {
+    console.log("reason: ", reason);
     if (reason !== SERVER_DISCONNECT) {
+      console.log("ここだよ");
       const currentSocketId = socket.id;
 
       const isPhoneUser =
@@ -173,18 +175,18 @@ wsServer.on("connection", (socket) => {
           emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
         }
       }
+      console.log("devices: ", deviceUsers);
+      console.log("phones: ", phoneUsers);
     }
   });
 
   // 本体起動時にデバイス情報を登録
   socket.on("entry", ({ uniqueId }) => {
-    console.log(uniqueId);
     deviceUsers.push({
       socketId: socket.id,
       uniqueId,
       roomId: "",
     });
-    console.log(deviceUsers);
   });
 
   // ルーム情報取得
@@ -389,9 +391,13 @@ wsServer.on("connection", (socket) => {
 
   // ルーム解散
   socket.on("terminate-room", ({ roomId }) => {
+    console.log(roomId);
     phoneUsers = phoneUsers.filter((phone) => phone.roomId !== roomId);
     deviceUsers = deviceUsers.filter((device) => device.roomId !== roomId);
     rooms = rooms.filter((room) => room.roomId !== roomId);
+
+    console.log("phone: ", phoneUsers);
+    console.log("device: ", deviceUsers);
 
     try {
       wsServer.emit("terminate-room-effect");

@@ -193,9 +193,12 @@ wsServer.on("connection", function (socket) {
   }); // 接続切れの処理
 
   socket.on("disconnect", function (reason) {
+    console.log("reason: ", reason);
+
     if (reason !== _constants.SERVER_DISCONNECT) {
       var _targetPhone2, _targetPhone3, _targetPhone4;
 
+      console.log("ここだよ");
       var currentSocketId = socket.id;
       var isPhoneUser = phoneUsers.find(function (phone) {
         return phone.socketId === currentSocketId;
@@ -257,18 +260,19 @@ wsServer.on("connection", function (socket) {
           });
         }
       }
+
+      console.log("devices: ", deviceUsers);
+      console.log("phones: ", phoneUsers);
     }
   }); // 本体起動時にデバイス情報を登録
 
   socket.on("entry", function (_ref4) {
     var uniqueId = _ref4.uniqueId;
-    console.log(uniqueId);
     deviceUsers.push({
       socketId: socket.id,
       uniqueId: uniqueId,
       roomId: ""
     });
-    console.log(deviceUsers);
   }); // ルーム情報取得
 
   socket.on("get-room", function (_ref5, callback) {
@@ -470,6 +474,7 @@ wsServer.on("connection", function (socket) {
 
   socket.on("terminate-room", function (_ref9) {
     var roomId = _ref9.roomId;
+    console.log(roomId);
     phoneUsers = phoneUsers.filter(function (phone) {
       return phone.roomId !== roomId;
     });
@@ -479,6 +484,8 @@ wsServer.on("connection", function (socket) {
     rooms = rooms.filter(function (room) {
       return room.roomId !== roomId;
     });
+    console.log("phone: ", phoneUsers);
+    console.log("device: ", deviceUsers);
 
     try {
       wsServer.emit("terminate-room-effect");
