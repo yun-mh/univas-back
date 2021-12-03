@@ -268,6 +268,16 @@ wsServer.on("connection", function (socket) {
 
   socket.on("entry", function (_ref4) {
     var uniqueId = _ref4.uniqueId;
+    var findResult = deviceUsers.filter(function (device) {
+      return device.uniqueId === uniqueId;
+    });
+
+    if (findResult.length > 0) {
+      deviceUsers = deviceUsers.filter(function (device) {
+        return device.uniqueId !== uniqueId;
+      });
+    }
+
     deviceUsers.push({
       socketId: socket.id,
       uniqueId: uniqueId,
