@@ -60,6 +60,15 @@
     </div>
 
     <div>
+      <h1>チャット機能</h1>
+      <label>
+        <p>chat</p>
+        <input type="text" id="chatText">
+      </label>
+      <input type="button" value="sendChat" onclick="sendChat()">
+    </div>
+
+    <div>
       <h1>画面調節機能</h1>
       <label>
         <p>ipaddress</p>
@@ -103,7 +112,7 @@
 
     <hr>
 
-    <form action="https://univas.herokuapp.com/send-log-url" method="POST">
+    <form action="http://localhost:4000/send-log-url" method="POST">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="logRoomId" readonly>
@@ -118,7 +127,7 @@
 
     <hr>
 
-    <form action="https://univas.herokuapp.com/get-log-url" method="GET">
+    <form action="http://localhost:4000/get-log-url" method="GET">
       <label>
         <p>roomId</p>
         <input type="text" name="roomId" value="OS4XS" id="getLogRoomId" readonly>
@@ -132,7 +141,7 @@
   </body>
 
   <script>
-  const socket = io.connect("https://univas.herokuapp.com/");	
+  const socket = io.connect("https://univas.herokuapp.com/");
   
   function createRoom() {
 		var title = document.getElementById("title").value;
@@ -140,7 +149,7 @@
 		var ipaddress = document.getElementById("ipaddress").value;
 		var language = document.getElementById("language").value;
 		
-    socket.emit("create-room", ({title, username, ipaddress, language}), (response) => {
+    socket.emit("create-room", ({title, username, uniqueId: ipaddress, language}), (response) => {
 			console.log(response);
       document.getElementById("roomId").value = response.roomId;
 		});
@@ -148,7 +157,7 @@
 	
 	function leaveRoom(){
 		var ipaddress = document.getElementById("ipaddress").value
-		socket.emit("leave-room", ({ipaddress: ipaddress}));
+		socket.emit("leave-room", ({uniqueId: ipaddress}));
 	}
 
 	function terminateRoom(){
@@ -163,7 +172,7 @@
 		var ipaddress = document.getElementById("joinIpaddress").value;
 		var language = document.getElementById("joinLanguage").value;
 
-    socket.emit("join-room", {username, roomId, ipaddress, language}, (arg) => {
+    socket.emit("join-room", {username, roomId, uniqueId: ipaddress, language}, (arg) => {
       console.log(arg)
     });
   }
@@ -173,14 +182,14 @@
 		var fontColor = document.getElementById("fontColor").value;
 		var fontSize = document.getElementById("fontSize").value;
 
-    socket.emit("change-accessibility", ({fontSize_per: fontSize, fontColor, ipaddress}));
+    socket.emit("change-accessibility", ({fontSize_per: fontSize, fontColor, uniqueId: ipaddress}));
   }
 
   function changeMode() {
 		var ipaddress = document.getElementById("modIpaddress").value;
 		var mode = document.getElementById("mode").value;
 
-    socket.emit("change-mode", ({ipaddress, mode}));
+    socket.emit("change-mode", ({uniqueId: ipaddress, mode}));
   }
 
   function updateTitle() {
@@ -188,6 +197,13 @@
 		var titleTitle = document.getElementById("titleTitle").value;
 
     socket.emit("updated-title", ({roomId: titleRoomId, title: titleTitle}));
+  }
+
+  function sendChat() {
+    var chatText = document.getElementById("chatText").value;
+		var ipaddress = document.getElementById("joinIpaddress").value;
+    var time = "aaa"
+    socket.emit("send-detected-voice", ({uniqueId: ipaddress,comment: chatText, time: time}));
   }
 
   socket.on("leave-room-effect", (args) => {

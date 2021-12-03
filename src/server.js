@@ -1,6 +1,8 @@
+require("dotenv").config();
 import http from "http";
 import { Server } from "socket.io";
 import express from "express";
+import { Translate } from "@google-cloud/translate/build/src/v2";
 
 import { Database } from "./database";
 import { SERVER_DISCONNECT } from "./constants";
@@ -10,8 +12,8 @@ import {
   emitErrorToAll,
   generateRoomId,
   getUserList,
-  getDeviceByIPAddress,
   getDeviceByUsername,
+  getDeviceByUniqueId,
 } from "./utils";
 
 const PORT = process.env.PORT || 4000;
@@ -22,6 +24,33 @@ app.use(express.urlencoded({ extended: true }));
 
 
 const db = new Database();
+
+const translate = new Translate({
+  credentials: {
+    type: "service_account",
+    project_id: process.env.PROJECT_ID,
+    private_key_id: process.env.TRANSLATOR_KEY_ID,
+    private_key: process.env.TRANSLATOR_KEY,
+    client_email: process.env.CLIENT_EMAIL,
+    client_id: process.env.CLIENT_ID,
+    auth_uri: "https://accounts.google.com/o/oauth2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: process.env.CLIENT_CERT,
+  },
+  projectId: process.env.PROJECT_ID,
+});
+
+// 翻訳処理
+const translateText = async (text, targetLanguage) => {
+  try {
+    let [response] = await translate.translate(text, targetLanguage);
+    return response;
+  } catch (error) {
+    console.log(`Error at translateText --> ${error}`);
+    return null;
+  }
+};
 
 // ログダウンロードURL送信
 app.post("/send-log-url", async (req, res) => {
@@ -98,23 +127,23 @@ wsServer.on("connection", (socket) => {
           (phone) => phone.socketId === currentSocketId
         );
         targetDevice = deviceUsers.find(
-          (device) => device.ipaddress === targetPhone?.ipaddress
+          (device) => device.uniqueId === targetPhone?.uniqueId
         );
       } else {
         targetDevice = deviceUsers.find(
           (device) => device.socketId === currentSocketId
         );
         targetPhone = phoneUsers.find(
-          (phone) => phone.ipaddress === targetDevice?.ipaddress
+          (phone) => phone.uniqueId === targetDevice?.uniqueId
         );
       }
 
       const roomId = targetPhone?.roomId;
-      const ipaddress = targetPhone?.ipaddress;
+      const uniqueId = targetPhone?.uniqueId;
 
-      phoneUsers = phoneUsers.filter((phone) => phone.ipaddress !== ipaddress);
+      phoneUsers = phoneUsers.filter((phone) => phone.uniqueId !== uniqueId);
       deviceUsers = deviceUsers.filter(
-        (device) => device.ipaddress !== ipaddress
+        (device) => device.uniqueId !== uniqueId
       );
 
       if (targetPhone?.isHost) {
@@ -130,32 +159,30 @@ wsServer.on("connection", (socket) => {
       } else {
         try {
           if (targetDevice !== undefined) {
+            console.log("Fire!!!!");
             const deviceSocket = wsServer.sockets.sockets.get(
               targetDevice.socketId
             );
-            deviceSocket.leave(roomId);
-            socket.leave(roomId);
 
             wsServer.emit("leave-room-effect", {
               userList: getUserList(phoneUsers, roomId),
             });
+
+            deviceSocket.leave(roomId);
+            socket.leave(roomId);
           }
         } catch (e) {
           emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
         }
       }
-
-      console.log("rooms: ", rooms);
-      console.log("phoneUsers: ", phoneUsers);
-      console.log("deviceUsers: ", deviceUsers);
     }
   });
 
   // 本体起動時にデバイス情報を登録
-  socket.on("entry", (args) => {
+  socket.on("entry", ({ uniqueId }) => {
     deviceUsers.push({
       socketId: socket.id,
-      ipaddress: args.ipaddress,
+      uniqueId,
       roomId: "",
     });
   });
@@ -178,27 +205,27 @@ wsServer.on("connection", (socket) => {
   // ルーム作成
   socket.on(
     "create-room",
-    ({ title, username, ipaddress, language }, callback) => {
+    ({ title, username, uniqueId, language }, callback) => {
       const roomId = generateRoomId(5);
 
       rooms.push({
         title: title,
         username: username,
-        ipaddress: ipaddress,
+        uniqueId: uniqueId,
         language: language,
         roomId: roomId,
       });
 
       phoneUsers.push({
         socketId: socket.id,
-        ipaddress: ipaddress,
+        uniqueId: uniqueId,
         roomId: roomId,
         username: username,
         language: language,
         isHost: true,
       });
 
-      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+      const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
       if (targetDevice !== undefined) {
         targetDevice.roomId = roomId;
 
@@ -245,17 +272,17 @@ wsServer.on("connection", (socket) => {
   //ルーム参加処理
   socket.on(
     "join-room",
-    function ({ username, roomId, ipaddress, language }, callback) {
+    function ({ username, roomId, uniqueId, language }, callback) {
       phoneUsers.push({
         socketId: socket.id,
-        ipaddress: ipaddress,
+        uniqueId: uniqueId,
         roomId: roomId,
         username: username,
         language: language,
         isHost: false,
       });
 
-      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+      const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
       if (targetDevice !== undefined) {
         targetDevice.roomId = roomId;
 
@@ -301,10 +328,10 @@ wsServer.on("connection", (socket) => {
   );
 
   // ルーム退出
-  socket.on("leave-room", ({ ipaddress }) => {
-    const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+  socket.on("leave-room", ({ uniqueId }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
-    const phoneUser = phoneUsers.find((phone) => phone.ipaddress === ipaddress);
+    const phoneUser = phoneUsers.find((phone) => phone.uniqueId === uniqueId);
 
     if (phoneUser.isHost) {
       phoneUsers = [];
@@ -318,12 +345,12 @@ wsServer.on("connection", (socket) => {
       wsServer.disconnectSockets();
     } else {
       const removeIndex = phoneUsers.findIndex(
-        (phone) => phone.ipaddress === ipaddress
+        (phone) => phone.uniqueId === uniqueId
       );
       phoneUsers.splice(removeIndex, 1);
 
       deviceUsers = deviceUsers.filter(
-        (device) => device.ipaddress !== ipaddress
+        (device) => device.uniqueId !== uniqueId
       );
 
       try {
@@ -384,24 +411,21 @@ wsServer.on("connection", (socket) => {
   });
 
   // アクセシビリティ更新
-  socket.on(
-    "change-accessibility",
-    ({ fontSize_per, fontColor, ipaddress }) => {
-      const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+  socket.on("change-accessibility", ({ fontSize_per, fontColor, uniqueId }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
-      if (targetDevice !== undefined) {
-        try {
-          socket
-            .to(targetDevice.socketId)
-            .emit("change-accessibility-effect", { fontSize_per, fontColor });
-        } catch (error) {
-          emitErrorToSelf(socket, {
-            errorMsg: "アクセシビリティ変更にエラーが発生しました。",
-          });
-        }
+    if (targetDevice !== undefined) {
+      try {
+        socket
+          .to(targetDevice.socketId)
+          .emit("change-accessibility-effect", { fontSize_per, fontColor });
+      } catch (error) {
+        emitErrorToSelf(socket, {
+          errorMsg: "アクセシビリティ変更にエラーが発生しました。",
+        });
       }
     }
-  );
+  });
 
   // 議題変更
   socket.on("updated-title", ({ roomId, title }) => {
@@ -420,8 +444,8 @@ wsServer.on("connection", (socket) => {
   });
 
   // モード切替
-  socket.on("change-mode", ({ ipaddress, mode }) => {
-    const targetDevice = getDeviceByIPAddress(deviceUsers, ipaddress);
+  socket.on("change-mode", ({ uniqueId, mode }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
       try {
@@ -432,38 +456,42 @@ wsServer.on("connection", (socket) => {
     }
   });
 
-  //AI用
-  socket.on("send-detected-voice", (args) => {
-    const targetDevice = getDeviceByIPAddress(
-      deviceUsers,
-      args.uniqueId
-    );
-
+  // 音声検知
+  socket.on("send-detected-voice", ({ uniqueId, comment, time }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
+        
     const devideUsername = getDeviceByUsername(
       phoneUsers,
       args.uniqueId
     );
 
-    try {
-      wsServer.emit("emit-log", {
-        username: devideUsername.username,
-        comment: args.comment,
-        time: args.time,
-      });
-    } catch (e) {
-      emitErrorToDevice(socket, {
-        targetId: targetDevice.socketId,
-        errorMsg: "エラーが発生しました。",
-      });
+    for (let i = 0; i < deviceUsers.length; i++) {
+      let socketId = deviceUsers[i].socketId;
+      let deviceUniqueId = deviceUsers[i].uniqueId;
+      let phoneUser = phoneUsers.find(
+        (user) => user.uniqueId === deviceUniqueId
+      );
+      let targetLanguage = phoneUser.language;
+
+      translateText(comment, targetLanguage)
+        .then(async (result) => {
+          console.log(i, " = ", socketId, " , ", result);
+          socket.to(socketId).emit("emit-log", {
+            username: devideUsername.username,
+            comment: result,
+            time,
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     }
   });
 
-  socket.on("send-detected-gesture", (args) => {
-    const targetDevice = getDeviceByIPAddress(
-      deviceUsers,
-      args.uniqueId
-    );
-
+  // ジェスチャー検知
+  socket.on("send-detected-gesture", ({ uniqueId, reaction, time }) => {
+    const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
+    
     const devideUsername = getDeviceByUsername(
       phoneUsers,
       args.uniqueId
@@ -472,8 +500,8 @@ wsServer.on("connection", (socket) => {
     try {
       wsServer.emit("emit-reaction", {
         username: devideUsername.username,
-        reaction: args.reaction,
-        time: args.time,
+        reaction,
+        time,
       });
     } catch (e) {
       emitErrorToDevice(socket, {
@@ -484,6 +512,6 @@ wsServer.on("connection", (socket) => {
   });
 });
 
-const handleListen = () => console.log(`Listening on http://localhost:${PORT}`);
+const handleListen = () => console.log(`Listening on port:${PORT}`);
 
 httpServer.listen(PORT, "0.0.0.0", handleListen);
