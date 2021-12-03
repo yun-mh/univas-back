@@ -472,7 +472,7 @@ wsServer.on("connection", (socket) => {
     try {
       wsServer.emit("emit-reaction", {
         username: devideUsername.username,
-        reaction: args.reaction,
+        reactionId: args.reactionId,
         time: args.time,
       });
     } catch (e) {
