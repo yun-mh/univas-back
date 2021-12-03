@@ -191,6 +191,16 @@ wsServer.on("connection", (socket) => {
 
   // 本体起動時にデバイス情報を登録
   socket.on("entry", ({ uniqueId }) => {
+    const findResult = deviceUsers.filter(
+      (device) => device.uniqueId === uniqueId
+    );
+
+    if (findResult.length > 0) {
+      deviceUsers = deviceUsers.filter(
+        (device) => device.uniqueId !== uniqueId
+      );
+    }
+
     deviceUsers.push({
       socketId: socket.id,
       uniqueId,
@@ -246,6 +256,7 @@ wsServer.on("connection", (socket) => {
           targetDevice.socketId
         );
         console.log("deviceSocket: ", deviceSocket);
+
         deviceSocket.join(roomId);
       }
 
