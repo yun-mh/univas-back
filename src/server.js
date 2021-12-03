@@ -187,6 +187,7 @@ wsServer.on("connection", (socket) => {
       uniqueId,
       roomId: "",
     });
+    console.log("devicesUsers: ", deviceUsers);
   });
 
   // ルーム情報取得

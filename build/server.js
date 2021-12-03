@@ -273,6 +273,7 @@ wsServer.on("connection", function (socket) {
       uniqueId: uniqueId,
       roomId: ""
     });
+    console.log("devicesUsers: ", deviceUsers);
   }); // ルーム情報取得
 
   socket.on("get-room", function (_ref5, callback) {
