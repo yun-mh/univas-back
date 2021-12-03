@@ -8,6 +8,7 @@ exports.emitErrorToDevice = emitErrorToDevice;
 exports.emitErrorToSelf = emitErrorToSelf;
 exports.generateRoomId = generateRoomId;
 exports.getDeviceByUniqueId = getDeviceByUniqueId;
+exports.getPhoneByUniqueId = getPhoneByUniqueId;
 exports.getUserList = getUserList;
 
 // ルームIDの生成
@@ -36,6 +37,13 @@ function getUserList(users, roomId) {
 function getDeviceByUniqueId(deviceUsers, uniqueId) {
   return deviceUsers.find(function (device) {
     return device.uniqueId === uniqueId;
+  });
+} //ユーザーネームの取得
+
+
+function getPhoneByUniqueId(phoneUsers, uniqueId) {
+  return phoneUsers.find(function (phone) {
+    return phone.uniqueId === uniqueId;
   });
 } // エラーエミット(全体向け)
 

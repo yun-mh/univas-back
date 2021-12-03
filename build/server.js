@@ -570,45 +570,53 @@ wsServer.on("connection", function (socket) {
         comment = _ref13.comment,
         time = _ref13.time;
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
+    var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
 
-    var _loop = function _loop(i) {
-      var socketId = deviceUsers[i].socketId;
-      var deviceUniqueId = deviceUsers[i].uniqueId;
-      var phoneUser = phoneUsers.find(function (user) {
-        return user.uniqueId === deviceUniqueId;
-      });
-      var targetLanguage = phoneUser.language;
-      translateText(comment, targetLanguage).then( /*#__PURE__*/function () {
-        var _ref14 = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee4(result) {
-          return _regenerator["default"].wrap(function _callee4$(_context4) {
-            while (1) {
-              switch (_context4.prev = _context4.next) {
-                case 0:
-                  console.log(i, " = ", socketId, " , ", result);
-                  socket.to(socketId).emit("emit-log", {
-                    username: targetDevice.username,
-                    comment: result,
-                    time: time
-                  });
+    try {
+      var _loop = function _loop(i) {
+        var socketId = deviceUsers[i].socketId;
+        var deviceUniqueId = deviceUsers[i].uniqueId;
+        var phoneUser = phoneUsers.find(function (user) {
+          return user.uniqueId === deviceUniqueId;
+        });
+        var targetLanguage = phoneUser.language;
+        translateText(comment, targetLanguage).then( /*#__PURE__*/function () {
+          var _ref14 = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee4(result) {
+            return _regenerator["default"].wrap(function _callee4$(_context4) {
+              while (1) {
+                switch (_context4.prev = _context4.next) {
+                  case 0:
+                    console.log(i, " = ", socketId, " , ", result);
+                    socket.to(socketId).emit("emit-log", {
+                      username: targetPhone.username,
+                      comment: result,
+                      time: time
+                    });
 
-                case 2:
-                case "end":
-                  return _context4.stop();
+                  case 2:
+                  case "end":
+                    return _context4.stop();
+                }
               }
-            }
-          }, _callee4);
-        }));
+            }, _callee4);
+          }));
 
-        return function (_x7) {
-          return _ref14.apply(this, arguments);
-        };
-      }())["catch"](function (err) {
-        console.log(err);
+          return function (_x7) {
+            return _ref14.apply(this, arguments);
+          };
+        }())["catch"](function (err) {
+          console.log(err);
+        });
+      };
+
+      for (var i = 0; i < deviceUsers.length; i++) {
+        _loop(i);
+      }
+    } catch (error) {
+      (0, _utils.emitErrorToDevice)(socket, {
+        targetId: targetDevice.socketId,
+        errorMsg: "エラーが発生しました。"
       });
-    };
-
-    for (var i = 0; i < deviceUsers.length; i++) {
-      _loop(i);
     }
   }); // ジェスチャー検知
 
@@ -617,10 +625,11 @@ wsServer.on("connection", function (socket) {
         reaction = _ref15.reaction,
         time = _ref15.time;
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
+    var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
 
     try {
       wsServer.emit("emit-reaction", {
-        username: targetDevice.username,
+        username: targetPhone.username,
         reaction: reaction,
         time: time
       });
