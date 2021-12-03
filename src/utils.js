@@ -23,8 +23,8 @@ export function getDeviceByUniqueId(deviceUsers, uniqueId) {
 }
 
 //ユーザーネームの取得
-export function getDeviceByUsername(phoneUsers, ipaddress) {
-  return phoneUsers.find((device) => device.ipaddress === ipaddress);
+export function getPhoneByUniqueId(phoneUsers, uniqueId) {
+  return phoneUsers.find((phone) => phone.uniqueId === uniqueId);
 }
 
 // エラーエミット(全体向け)

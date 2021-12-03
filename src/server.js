@@ -12,7 +12,7 @@ import {
   emitErrorToAll,
   generateRoomId,
   getUserList,
-  getDeviceByUsername,
+  getPhoneByUniqueId,
   getDeviceByUniqueId,
 } from "./utils";
 
@@ -21,7 +21,6 @@ const PORT = process.env.PORT || 4000;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 const db = new Database();
 
@@ -479,47 +478,48 @@ wsServer.on("connection", (socket) => {
   // 音声検知
   socket.on("send-detected-voice", ({ uniqueId, comment, time }) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
-        
-    const devideUsername = getDeviceByUsername(
-      phoneUsers,
-      args.uniqueId
-    );
 
-    for (let i = 0; i < deviceUsers.length; i++) {
-      let socketId = deviceUsers[i].socketId;
-      let deviceUniqueId = deviceUsers[i].uniqueId;
-      let phoneUser = phoneUsers.find(
-        (user) => user.uniqueId === deviceUniqueId
-      );
-      let targetLanguage = phoneUser.language;
+    const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
 
-      translateText(comment, targetLanguage)
-        .then(async (result) => {
-          console.log(i, " = ", socketId, " , ", result);
-          socket.to(socketId).emit("emit-log", {
-            username: devideUsername.username,
-            comment: result,
-            time,
+    try {
+      for (let i = 0; i < deviceUsers.length; i++) {
+        let socketId = deviceUsers[i].socketId;
+        let deviceUniqueId = deviceUsers[i].uniqueId;
+        let phoneUser = phoneUsers.find(
+          (user) => user.uniqueId === deviceUniqueId
+        );
+        let targetLanguage = phoneUser.language;
+
+        translateText(comment, targetLanguage)
+          .then(async (result) => {
+            console.log(i, " = ", socketId, " , ", result);
+            socket.to(socketId).emit("emit-log", {
+              username: targetPhone.username,
+              comment: result,
+              time,
+            });
+          })
+          .catch((err) => {
+            console.log(err);
           });
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+      }
+    } catch (error) {
+      emitErrorToDevice(socket, {
+        targetId: targetDevice.socketId,
+        errorMsg: "エラーが発生しました。",
+      });
     }
   });
 
   // ジェスチャー検知
   socket.on("send-detected-gesture", ({ uniqueId, reaction, time }) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
-    
-    const devideUsername = getDeviceByUsername(
-      phoneUsers,
-      args.uniqueId
-    );
+
+    const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
 
     try {
       wsServer.emit("emit-reaction", {
-        username: devideUsername.username,
+        username: targetPhone.username,
         reaction,
         time,
       });
