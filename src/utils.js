@@ -22,6 +22,11 @@ export function getDeviceByIPAddress(deviceUsers, ipaddress) {
   return deviceUsers.find((device) => device.ipaddress === ipaddress);
 }
 
+//ユーザーネームの取得
+export function getDeviceByUsername(phoneUsers, ipaddress) {
+  return phoneUsers.find((device) => device.ipaddress === ipaddress);
+}
+
 // エラーエミット(全体向け)
 export function emitErrorToAll(socket, { roomId, errorMsg }) {
   socket.in(roomId).emit("error", { errorMsg });

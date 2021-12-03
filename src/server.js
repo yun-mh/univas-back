@@ -11,6 +11,7 @@ import {
   generateRoomId,
   getUserList,
   getDeviceByIPAddress,
+  getDeviceByUsername,
 } from "./utils";
 
 const PORT = process.env.PORT || 4000;
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 4000;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 
 const db = new Database();
 
@@ -434,12 +436,17 @@ wsServer.on("connection", (socket) => {
   socket.on("send-detected-voice", (args) => {
     const targetDevice = getDeviceByIPAddress(
       deviceUsers,
-      uniqueId
+      args.uniqueId
+    );
+
+    const devideUsername = getDeviceByUsername(
+      phoneUsers,
+      args.uniqueId
     );
 
     try {
       wsServer.emit("emit-log", {
-        username: targetDevice.username,
+        username: devideUsername.username,
         comment: args.comment,
         time: args.time,
       });
@@ -454,12 +461,17 @@ wsServer.on("connection", (socket) => {
   socket.on("send-detected-gesture", (args) => {
     const targetDevice = getDeviceByIPAddress(
       deviceUsers,
-      uniqueId
+      args.uniqueId
+    );
+
+    const devideUsername = getDeviceByUsername(
+      phoneUsers,
+      args.uniqueId
     );
 
     try {
       wsServer.emit("emit-reaction", {
-        username: targetDevice.username,
+        username: devideUsername.username,
         reaction: args.reaction,
         time: args.time,
       });
