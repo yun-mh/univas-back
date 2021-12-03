@@ -25,7 +25,6 @@ var _utils = require("./utils");
 require("dotenv").config();
 
 var PORT = process.env.PORT || 4000;
-console.log(process.env.TRANSLATOR_KEY_ID);
 var app = (0, _express["default"])();
 app.use(_express["default"].json());
 app.use(_express["default"].urlencoded({
@@ -263,11 +262,13 @@ wsServer.on("connection", function (socket) {
 
   socket.on("entry", function (_ref4) {
     var uniqueId = _ref4.uniqueId;
+    console.log(uniqueId);
     deviceUsers.push({
       socketId: socket.id,
       uniqueId: uniqueId,
       roomId: ""
     });
+    console.log(deviceUsers);
   }); // ルーム情報取得
 
   socket.on("get-room", function (_ref5, callback) {
@@ -314,8 +315,10 @@ wsServer.on("connection", function (socket) {
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
+      console.log("targetDevice: ", targetDevice);
       targetDevice.roomId = roomId;
       var deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
+      console.log("deviceSocket: ", deviceSocket);
       deviceSocket.join(roomId);
     }
 
