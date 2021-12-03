@@ -418,6 +418,7 @@ wsServer.on("connection", function (socket) {
 
   socket.on("leave-room", function (_ref8) {
     var uniqueId = _ref8.uniqueId;
+    console.log("hey");
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var phoneUser = phoneUsers.find(function (phone) {
       return phone.uniqueId === uniqueId;

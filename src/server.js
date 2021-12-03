@@ -343,6 +343,7 @@ wsServer.on("connection", (socket) => {
 
   // ルーム退出
   socket.on("leave-room", ({ uniqueId }) => {
+    console.log("hey");
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     const phoneUser = phoneUsers.find((phone) => phone.uniqueId === uniqueId);
