@@ -214,14 +214,6 @@
     console.log("terminate-room-effect, 全てのスマホ・本体に：")
   })
 
-  socket.on("emit-log", (args) => {
-    console.log("emit-log, 全ての本体に：", args)
-  })
-
-  socket.on("emit-reaction", (args) => {
-    console.log("emit-reaction, 全ての本体に：", args)
-  })
-
   socket.on("error", (args) => {
     console.log("error, 全てのケースに", args)
   })

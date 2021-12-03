@@ -512,7 +512,7 @@ wsServer.on("connection", (socket) => {
   });
 
   // ジェスチャー検知
-  socket.on("send-detected-gesture", ({ uniqueId, reaction, time }) => {
+  socket.on("send-detected-gesture", ({ uniqueId, reactionId, time }) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
@@ -520,7 +520,7 @@ wsServer.on("connection", (socket) => {
     try {
       wsServer.emit("emit-reaction", {
         username: targetPhone.username,
-        reaction,
+        reactionId,
         time,
       });
     } catch (e) {
