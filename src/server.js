@@ -168,7 +168,6 @@ wsServer.on("connection", (socket) => {
       } else {
         try {
           if (targetDevice !== undefined) {
-            console.log("Fire!!!!");
             const deviceSocket = wsServer.sockets.sockets.get(
               targetDevice.socketId
             );

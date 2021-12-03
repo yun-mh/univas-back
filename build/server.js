@@ -247,7 +247,6 @@ wsServer.on("connection", function (socket) {
       } else {
         try {
           if (targetDevice !== undefined) {
-            console.log("Fire!!!!");
             var deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
             wsServer.emit("leave-room-effect", {
               userList: (0, _utils.getUserList)(phoneUsers, roomId)
