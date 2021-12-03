@@ -634,7 +634,7 @@ wsServer.on("connection", function (socket) {
 
   socket.on("send-detected-gesture", function (_ref15) {
     var uniqueId = _ref15.uniqueId,
-        reaction = _ref15.reaction,
+        reactionId = _ref15.reactionId,
         time = _ref15.time;
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
@@ -642,7 +642,7 @@ wsServer.on("connection", function (socket) {
     try {
       wsServer.emit("emit-reaction", {
         username: targetPhone.username,
-        reaction: reaction,
+        reactionId: reactionId,
         time: time
       });
     } catch (e) {
