@@ -39,7 +39,7 @@
   function sendEntry() {
     const ipaddress = document.getElementById("ipaddress").value;
 
-    socket.emit("entry", { ipaddress });
+    socket.emit("entry", { uniqueId: ipaddress });
   }
 
   function getRoom() {
@@ -96,6 +96,11 @@
     console.log("emit-reaction, 全ての本体に：", args)
   })
     
+
+  socket.on("emit-log", (args => {
+    console.log("message = ", args)
+  }))
+  
  </script>
   
 </html>
