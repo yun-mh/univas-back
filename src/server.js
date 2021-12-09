@@ -531,6 +531,8 @@ wsServer.on("connection", (socket) => {
     const targetDevice = getDeviceByUniqueId(deviceUsers, uniqueId);
 
     const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
+    console.log("targetDevice: ", targetDevice);
+    console.log("targetPhone: ", targetPhone);
 
     try {
       wsServer.emit("emit-reaction", {
