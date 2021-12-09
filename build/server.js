@@ -193,7 +193,7 @@ wsServer.on("connection", function (socket) {
   }); // 接続切れの処理
 
   socket.on("disconnect", function (reason) {
-    console.log("reason: ", reason);
+    console.log("disconnect reason: ", reason);
 
     if (reason !== _constants.SERVER_DISCONNECT) {
       var _targetPhone2, _targetDevice2, _targetPhone3, _targetPhone4, _targetDevice3, _targetPhone5, _targetPhone6;
@@ -226,14 +226,14 @@ wsServer.on("connection", function (socket) {
 
       var roomId = ((_targetPhone2 = targetPhone) === null || _targetPhone2 === void 0 ? void 0 : _targetPhone2.roomId) === undefined ? (_targetDevice2 = targetDevice) === null || _targetDevice2 === void 0 ? void 0 : _targetDevice2.roomId : (_targetPhone3 = targetPhone) === null || _targetPhone3 === void 0 ? void 0 : _targetPhone3.roomId;
       var uniqueId = ((_targetPhone4 = targetPhone) === null || _targetPhone4 === void 0 ? void 0 : _targetPhone4.uniqueId) === undefined ? (_targetDevice3 = targetDevice) === null || _targetDevice3 === void 0 ? void 0 : _targetDevice3.uniqueId : (_targetPhone5 = targetPhone) === null || _targetPhone5 === void 0 ? void 0 : _targetPhone5.uniqueId;
-      console.log("roomId, uniqueID: ", roomId, uniqueId);
+      console.log("Processed Show roomId, uniqueID: ", roomId, uniqueId);
       phoneUsers = phoneUsers.filter(function (phone) {
         return phone.uniqueId !== uniqueId;
       });
       deviceUsers = deviceUsers.filter(function (device) {
         return device.uniqueId !== uniqueId;
       });
-      console.log("phoneUsers, deviceUsers: ", phoneUsers, deviceUsers);
+      console.log("Processed Show phoneUsers, deviceUsers: ", phoneUsers, deviceUsers);
 
       if ((_targetPhone6 = targetPhone) !== null && _targetPhone6 !== void 0 && _targetPhone6.isHost) {
         phoneUsers = [];
@@ -261,8 +261,8 @@ wsServer.on("connection", function (socket) {
         }
       }
 
-      console.log("devices: ", deviceUsers);
-      console.log("phones: ", phoneUsers);
+      console.log("Result devices: ", deviceUsers);
+      console.log("Result phones: ", phoneUsers);
     }
   }); // 本体起動時にデバイス情報を登録
 
@@ -283,7 +283,7 @@ wsServer.on("connection", function (socket) {
       uniqueId: uniqueId,
       roomId: ""
     });
-    console.log("devicesUsers: ", deviceUsers);
+    console.log("Pushed devicesUsers: ", deviceUsers);
   }); // ルーム情報取得
 
   socket.on("get-room", function (_ref5, callback) {
@@ -330,10 +330,9 @@ wsServer.on("connection", function (socket) {
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
 
     if (targetDevice !== undefined) {
-      console.log("targetDevice: ", targetDevice);
+      console.log("TargetDevice for creating rooms: ", targetDevice);
       targetDevice.roomId = roomId;
       var deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
-      console.log("deviceSocket: ", deviceSocket);
       deviceSocket.join(roomId);
     }
 
@@ -365,9 +364,9 @@ wsServer.on("connection", function (socket) {
       socket.disconnect(true);
     }
 
-    console.log("rooms: ", rooms);
-    console.log("phoneUsers: ", phoneUsers);
-    console.log("deviceUsers: ", deviceUsers);
+    console.log("Result rooms: ", rooms);
+    console.log("Result phoneUsers: ", phoneUsers);
+    console.log("Result deviceUsers: ", deviceUsers);
   }); //ルーム参加処理
 
   socket.on("join-room", function (_ref7, callback) {
@@ -420,14 +419,13 @@ wsServer.on("connection", function (socket) {
       socket.disconnect(true);
     }
 
-    console.log("rooms: ", rooms);
-    console.log("phoneUsers: ", phoneUsers);
-    console.log("deviceUsers: ", deviceUsers);
+    console.log("Result rooms: ", rooms);
+    console.log("Result phoneUsers: ", phoneUsers);
+    console.log("Result deviceUsers: ", deviceUsers);
   }); // ルーム退出
 
   socket.on("leave-room", function (_ref8) {
     var uniqueId = _ref8.uniqueId;
-    console.log("hey");
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var phoneUser = phoneUsers.find(function (phone) {
       return phone.uniqueId === uniqueId;
@@ -479,14 +477,13 @@ wsServer.on("connection", function (socket) {
       }
     }
 
-    console.log("rooms: ", rooms);
-    console.log("phoneUsers: ", phoneUsers);
-    console.log("deviceUsers: ", deviceUsers);
+    console.log("Result rooms: ", rooms);
+    console.log("Result phoneUsers: ", phoneUsers);
+    console.log("Result deviceUsers: ", deviceUsers);
   }); // ルーム解散
 
   socket.on("terminate-room", function (_ref9) {
     var roomId = _ref9.roomId;
-    console.log(roomId);
     phoneUsers = phoneUsers.filter(function (phone) {
       return phone.roomId !== roomId;
     });
@@ -496,8 +493,8 @@ wsServer.on("connection", function (socket) {
     rooms = rooms.filter(function (room) {
       return room.roomId !== roomId;
     });
-    console.log("phone: ", phoneUsers);
-    console.log("device: ", deviceUsers);
+    console.log("Processed phone: ", phoneUsers);
+    console.log("Processed device: ", deviceUsers);
 
     try {
       wsServer.emit("terminate-room-effect");
@@ -511,9 +508,9 @@ wsServer.on("connection", function (socket) {
       socket.disconnect(true);
     }
 
-    console.log("rooms: ", rooms);
-    console.log("phoneUsers: ", phoneUsers);
-    console.log("deviceUsers: ", deviceUsers);
+    console.log("Result rooms: ", rooms);
+    console.log("Result phoneUsers: ", phoneUsers);
+    console.log("Result deviceUsers: ", deviceUsers);
   }); // アクセシビリティ更新
 
   socket.on("change-accessibility", function (_ref10) {
@@ -579,10 +576,8 @@ wsServer.on("connection", function (socket) {
     var uniqueId = _ref13.uniqueId,
         comment = _ref13.comment,
         time = _ref13.time;
-    console.log("uniqueId, comment, time: ", uniqueId, comment, time);
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
-    console.log("targetDevice, targetPhone: ", targetDevice, targetPhone);
 
     try {
       var _loop = function _loop(i) {
@@ -598,7 +593,7 @@ wsServer.on("connection", function (socket) {
               while (1) {
                 switch (_context4.prev = _context4.next) {
                   case 0:
-                    console.log(i, " = ", socketId, " , ", result);
+                    console.log("SocketId: ", socketId, " , ", result);
                     socket.to(socketId).emit("emit-log", {
                       username: targetPhone.username,
                       comment: result,
@@ -636,11 +631,8 @@ wsServer.on("connection", function (socket) {
     var uniqueId = _ref15.uniqueId,
         reactionId = _ref15.reactionId,
         time = _ref15.time;
-    console.log("uniqueId, reactionId, time: ", uniqueId, reactionId, time);
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
-    console.log("targetDevice: ", targetDevice);
-    console.log("targetPhone: ", targetPhone);
 
     try {
       wsServer.emit("emit-reaction", {
