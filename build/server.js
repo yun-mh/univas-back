@@ -636,6 +636,7 @@ wsServer.on("connection", function (socket) {
     var uniqueId = _ref15.uniqueId,
         reactionId = _ref15.reactionId,
         time = _ref15.time;
+    console.log("uniqueId, reactionId, time: ", uniqueId, reactionId, time);
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
 
