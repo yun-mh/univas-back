@@ -53,11 +53,9 @@ const translateText = async (text, targetLanguage) => {
 
 // ログダウンロードURL送信
 app.post("/send-log-url", async (req, res) => {
-  if (!req.body) {
-    return;
-  }
+  console.log("Saving logs to database...");
 
-  const { roomId, logUrl } = req.body;
+  const { roomId, logUrl } = req.body; // フロントがどの経路でパラメタを渡しているのか確認する必要あり。
   try {
     db.init();
     db.insert("INSERT INTO log(roomId, logUrl) values(?, ?)", [roomId, logUrl]);
@@ -73,8 +71,8 @@ app.post("/send-log-url", async (req, res) => {
 
 // ログダウンロードURL入手
 app.get("/get-log-url", async (req, res) => {
-  const roomId = req.query.roomId;
-
+  console.log("Getting logs by room id!");
+  const { roomId } = req.params; // フロントがどの経路でパラメタを渡しているのか確認する必要あり。
   try {
     db.init();
     const queryResult = await db.get("SELECT * FROM log WHERE roomId = ?", [
@@ -165,8 +163,10 @@ wsServer.on("connection", (socket) => {
         deviceUsers = [];
         rooms = rooms.filter((room) => room.roomId !== roomId);
 
+        console.log("Emit: change-screen-leave");
         wsServer.emit("change-screen-leave");
 
+        console.log("Emit: terminate-room-effect");
         wsServer.emit("terminate-room-effect");
 
         wsServer.disconnectSockets();
@@ -177,6 +177,7 @@ wsServer.on("connection", (socket) => {
               targetDevice.socketId
             );
 
+            console.log("Emit: leave-room-effect");
             wsServer.emit("leave-room-effect", {
               userList: getUserList(phoneUsers, roomId),
             });
@@ -260,7 +261,11 @@ wsServer.on("connection", (socket) => {
           targetDevice.socketId
         );
 
-        deviceSocket.join(roomId);
+        if (deviceSocket !== undefined) {
+          deviceSocket.join(roomId);
+        } else {
+          return;
+        }
       }
 
       socket.join(roomId);
@@ -270,6 +275,7 @@ wsServer.on("connection", (socket) => {
       });
 
       try {
+        console.log("Emit: join-room-effect");
         wsServer.in(roomId).emit("join-room-effect", {
           userList: getUserList(phoneUsers, roomId),
         });
@@ -281,6 +287,7 @@ wsServer.on("connection", (socket) => {
       }
 
       try {
+        console.log("Emit: change-screen-enter");
         socket
           .to(targetDevice.socketId)
           .emit("change-screen-enter", { roomId, username });
@@ -328,6 +335,7 @@ wsServer.on("connection", (socket) => {
       });
 
       try {
+        console.log("Emit: join-room-effect");
         wsServer.emit("join-room-effect", {
           userList: getUserList(phoneUsers, roomId),
         });
@@ -339,6 +347,7 @@ wsServer.on("connection", (socket) => {
       }
 
       try {
+        console.log("Emit: change-screen-enter");
         socket
           .to(targetDevice.socketId)
           .emit("change-screen-enter", { roomId, username });
@@ -366,8 +375,10 @@ wsServer.on("connection", (socket) => {
       deviceUsers = [];
       rooms = rooms.filter((room) => room.roomId !== phoneUser.roomId);
 
+      console.log("Emit: change-screen-leave");
       wsServer.emit("change-screen-leave");
 
+      console.log("Emit: terminate-room-effect");
       wsServer.emit("terminate-room-effect");
 
       wsServer.disconnectSockets();
@@ -382,6 +393,7 @@ wsServer.on("connection", (socket) => {
       );
 
       try {
+        console.log("Emit: change-screen-leave");
         socket.to(targetDevice.socketId).emit("change-screen-leave");
       } catch (e) {
         emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
@@ -389,6 +401,7 @@ wsServer.on("connection", (socket) => {
       }
 
       try {
+        console.log("Emit: leave-room-effect");
         wsServer.emit("leave-room-effect", {
           userList: getUserList(phoneUsers, phoneUser.roomId),
         });
@@ -423,8 +436,10 @@ wsServer.on("connection", (socket) => {
     console.log("Processed device: ", deviceUsers);
 
     try {
+      console.log("Emit: terminate-room-effect");
       wsServer.emit("terminate-room-effect");
 
+      console.log("Emit: change-screen-leave");
       wsServer.emit("change-screen-leave");
 
       wsServer.disconnectSockets(roomId);
@@ -447,6 +462,7 @@ wsServer.on("connection", (socket) => {
 
     if (targetDevice !== undefined) {
       try {
+        console.log("Emit: change-accessibility-effect");
         socket
           .to(targetDevice.socketId)
           .emit("change-accessibility-effect", { fontSize_per, fontColor });
@@ -464,6 +480,7 @@ wsServer.on("connection", (socket) => {
 
     if (targetRoom !== undefined) {
       try {
+        console.log("Emit: updated-title-effect");
         wsServer.in(targetRoom.roomId).emit("updated-title-effect", { title });
       } catch (error) {
         emitErrorToAll(wsServer, {
@@ -480,6 +497,7 @@ wsServer.on("connection", (socket) => {
 
     if (targetDevice !== undefined) {
       try {
+        console.log("Emit: change-mode-effect");
         socket.to(targetDevice.socketId).emit("change-mode-effect", { mode });
       } catch (error) {
         emitErrorToSelf(socket, { errorMsg: "エラーが発生しました。" });
@@ -493,33 +511,37 @@ wsServer.on("connection", (socket) => {
 
     const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
 
-    try {
-      for (let i = 0; i < deviceUsers.length; i++) {
-        let socketId = deviceUsers[i].socketId;
-        let deviceUniqueId = deviceUsers[i].uniqueId;
-        let phoneUser = phoneUsers.find(
-          (user) => user.uniqueId === deviceUniqueId
-        );
-        let targetLanguage = phoneUser.language;
+    if (targetDevice !== undefined && targetPhone !== undefined) {
+      try {
+        for (let i = 0; i < deviceUsers.length; i++) {
+          let socketId = deviceUsers[i].socketId;
+          let deviceUniqueId = deviceUsers[i].uniqueId;
+          let phoneUser = phoneUsers.find(
+            (user) => user.uniqueId === deviceUniqueId
+          );
+          let targetLanguage = phoneUser.language;
 
-        translateText(comment, targetLanguage)
-          .then(async (result) => {
-            console.log("SocketId: ", socketId, " , ", result);
-            socket.to(socketId).emit("emit-log", {
-              username: targetPhone.username,
-              comment: result,
-              time,
+          translateText(comment, targetLanguage)
+            .then(async (result) => {
+              console.log("Emit log, SocketId: ", socketId, " , ", result);
+              socket.to(socketId).emit("emit-log", {
+                username: targetPhone.username,
+                comment: result,
+                time,
+              });
+            })
+            .catch((err) => {
+              console.log(err);
             });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+        }
+      } catch (error) {
+        emitErrorToDevice(socket, {
+          targetId: targetDevice.socketId,
+          errorMsg: "エラーが発生しました。",
+        });
       }
-    } catch (error) {
-      emitErrorToDevice(socket, {
-        targetId: targetDevice.socketId,
-        errorMsg: "エラーが発生しました。",
-      });
+    } else {
+      return;
     }
   });
 
@@ -529,17 +551,22 @@ wsServer.on("connection", (socket) => {
 
     const targetPhone = getPhoneByUniqueId(phoneUsers, uniqueId);
 
-    try {
-      wsServer.emit("emit-reaction", {
-        username: targetPhone.username,
-        reactionId,
-        time,
-      });
-    } catch (e) {
-      emitErrorToDevice(socket, {
-        targetId: targetDevice.socketId,
-        errorMsg: "エラーが発生しました。",
-      });
+    if (targetDevice !== undefined && targetPhone !== undefined) {
+      try {
+        console.log("Emit: emit-reaction");
+        wsServer.emit("emit-reaction", {
+          username: targetPhone.username,
+          reactionId,
+          time,
+        });
+      } catch (e) {
+        emitErrorToDevice(socket, {
+          targetId: targetDevice.socketId,
+          errorMsg: "エラーが発生しました。",
+        });
+      }
+    } else {
+      return;
     }
   });
 });

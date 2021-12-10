@@ -93,24 +93,18 @@ app.post("/send-log-url", /*#__PURE__*/function () {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            if (req.body) {
-              _context2.next = 2;
-              break;
-            }
+            console.log("Saving logs to database...");
+            _req$body = req.body, roomId = _req$body.roomId, logUrl = _req$body.logUrl; // フロントがどの経路でパラメタを渡しているのか確認する必要あり。
 
-            return _context2.abrupt("return");
-
-          case 2:
-            _req$body = req.body, roomId = _req$body.roomId, logUrl = _req$body.logUrl;
-            _context2.prev = 3;
+            _context2.prev = 2;
             db.init();
             db.insert("INSERT INTO log(roomId, logUrl) values(?, ?)", [roomId, logUrl]);
             db.close();
             return _context2.abrupt("return", res.status(201).send());
 
-          case 10:
-            _context2.prev = 10;
-            _context2.t0 = _context2["catch"](3);
+          case 9:
+            _context2.prev = 9;
+            _context2.t0 = _context2["catch"](2);
             return _context2.abrupt("return", res.status(500).send({
               error: {
                 code: 500,
@@ -118,12 +112,12 @@ app.post("/send-log-url", /*#__PURE__*/function () {
               }
             }));
 
-          case 13:
+          case 12:
           case "end":
             return _context2.stop();
         }
       }
-    }, _callee2, null, [[3, 10]]);
+    }, _callee2, null, [[2, 9]]);
   }));
 
   return function (_x3, _x4) {
@@ -138,22 +132,24 @@ app.get("/get-log-url", /*#__PURE__*/function () {
       while (1) {
         switch (_context3.prev = _context3.next) {
           case 0:
-            roomId = req.query.roomId;
-            _context3.prev = 1;
+            console.log("Getting logs by room id!");
+            roomId = req.params.roomId; // フロントがどの経路でパラメタを渡しているのか確認する必要あり。
+
+            _context3.prev = 2;
             db.init();
-            _context3.next = 5;
+            _context3.next = 6;
             return db.get("SELECT * FROM log WHERE roomId = ?", [roomId]);
 
-          case 5:
+          case 6:
             queryResult = _context3.sent;
             db.close();
             return _context3.abrupt("return", res.status(200).send({
               logUrl: queryResult.logUrl
             }));
 
-          case 10:
-            _context3.prev = 10;
-            _context3.t0 = _context3["catch"](1);
+          case 11:
+            _context3.prev = 11;
+            _context3.t0 = _context3["catch"](2);
             return _context3.abrupt("return", res.status(404).send({
               error: {
                 code: 404,
@@ -161,12 +157,12 @@ app.get("/get-log-url", /*#__PURE__*/function () {
               }
             }));
 
-          case 13:
+          case 14:
           case "end":
             return _context3.stop();
         }
       }
-    }, _callee3, null, [[1, 10]]);
+    }, _callee3, null, [[2, 11]]);
   }));
 
   return function (_x5, _x6) {
@@ -241,13 +237,16 @@ wsServer.on("connection", function (socket) {
         rooms = rooms.filter(function (room) {
           return room.roomId !== roomId;
         });
+        console.log("Emit: change-screen-leave");
         wsServer.emit("change-screen-leave");
+        console.log("Emit: terminate-room-effect");
         wsServer.emit("terminate-room-effect");
         wsServer.disconnectSockets();
       } else {
         try {
           if (targetDevice !== undefined) {
             var deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
+            console.log("Emit: leave-room-effect");
             wsServer.emit("leave-room-effect", {
               userList: (0, _utils.getUserList)(phoneUsers, roomId)
             });
@@ -333,7 +332,12 @@ wsServer.on("connection", function (socket) {
       console.log("TargetDevice for creating rooms: ", targetDevice);
       targetDevice.roomId = roomId;
       var deviceSocket = wsServer.sockets.sockets.get(targetDevice.socketId);
-      deviceSocket.join(roomId);
+
+      if (deviceSocket !== undefined) {
+        deviceSocket.join(roomId);
+      } else {
+        return;
+      }
     }
 
     socket.join(roomId);
@@ -342,6 +346,7 @@ wsServer.on("connection", function (socket) {
     });
 
     try {
+      console.log("Emit: join-room-effect");
       wsServer["in"](roomId).emit("join-room-effect", {
         userList: (0, _utils.getUserList)(phoneUsers, roomId)
       });
@@ -353,6 +358,7 @@ wsServer.on("connection", function (socket) {
     }
 
     try {
+      console.log("Emit: change-screen-enter");
       socket.to(targetDevice.socketId).emit("change-screen-enter", {
         roomId: roomId,
         username: username
@@ -397,6 +403,7 @@ wsServer.on("connection", function (socket) {
     });
 
     try {
+      console.log("Emit: join-room-effect");
       wsServer.emit("join-room-effect", {
         userList: (0, _utils.getUserList)(phoneUsers, roomId)
       });
@@ -408,6 +415,7 @@ wsServer.on("connection", function (socket) {
     }
 
     try {
+      console.log("Emit: change-screen-enter");
       socket.to(targetDevice.socketId).emit("change-screen-enter", {
         roomId: roomId,
         username: username
@@ -437,7 +445,9 @@ wsServer.on("connection", function (socket) {
       rooms = rooms.filter(function (room) {
         return room.roomId !== phoneUser.roomId;
       });
+      console.log("Emit: change-screen-leave");
       wsServer.emit("change-screen-leave");
+      console.log("Emit: terminate-room-effect");
       wsServer.emit("terminate-room-effect");
       wsServer.disconnectSockets();
     } else {
@@ -450,6 +460,7 @@ wsServer.on("connection", function (socket) {
       });
 
       try {
+        console.log("Emit: change-screen-leave");
         socket.to(targetDevice.socketId).emit("change-screen-leave");
       } catch (e) {
         (0, _utils.emitErrorToSelf)(socket, {
@@ -459,6 +470,7 @@ wsServer.on("connection", function (socket) {
       }
 
       try {
+        console.log("Emit: leave-room-effect");
         wsServer.emit("leave-room-effect", {
           userList: (0, _utils.getUserList)(phoneUsers, phoneUser.roomId)
         });
@@ -497,7 +509,9 @@ wsServer.on("connection", function (socket) {
     console.log("Processed device: ", deviceUsers);
 
     try {
+      console.log("Emit: terminate-room-effect");
       wsServer.emit("terminate-room-effect");
+      console.log("Emit: change-screen-leave");
       wsServer.emit("change-screen-leave");
       wsServer.disconnectSockets(roomId);
     } catch (e) {
@@ -521,6 +535,7 @@ wsServer.on("connection", function (socket) {
 
     if (targetDevice !== undefined) {
       try {
+        console.log("Emit: change-accessibility-effect");
         socket.to(targetDevice.socketId).emit("change-accessibility-effect", {
           fontSize_per: fontSize_per,
           fontColor: fontColor
@@ -542,6 +557,7 @@ wsServer.on("connection", function (socket) {
 
     if (targetRoom !== undefined) {
       try {
+        console.log("Emit: updated-title-effect");
         wsServer["in"](targetRoom.roomId).emit("updated-title-effect", {
           title: title
         });
@@ -561,6 +577,7 @@ wsServer.on("connection", function (socket) {
 
     if (targetDevice !== undefined) {
       try {
+        console.log("Emit: change-mode-effect");
         socket.to(targetDevice.socketId).emit("change-mode-effect", {
           mode: mode
         });
@@ -579,51 +596,55 @@ wsServer.on("connection", function (socket) {
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
 
-    try {
-      var _loop = function _loop(i) {
-        var socketId = deviceUsers[i].socketId;
-        var deviceUniqueId = deviceUsers[i].uniqueId;
-        var phoneUser = phoneUsers.find(function (user) {
-          return user.uniqueId === deviceUniqueId;
-        });
-        var targetLanguage = phoneUser.language;
-        translateText(comment, targetLanguage).then( /*#__PURE__*/function () {
-          var _ref14 = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee4(result) {
-            return _regenerator["default"].wrap(function _callee4$(_context4) {
-              while (1) {
-                switch (_context4.prev = _context4.next) {
-                  case 0:
-                    console.log("SocketId: ", socketId, " , ", result);
-                    socket.to(socketId).emit("emit-log", {
-                      username: targetPhone.username,
-                      comment: result,
-                      time: time
-                    });
+    if (targetDevice !== undefined && targetPhone !== undefined) {
+      try {
+        var _loop = function _loop(i) {
+          var socketId = deviceUsers[i].socketId;
+          var deviceUniqueId = deviceUsers[i].uniqueId;
+          var phoneUser = phoneUsers.find(function (user) {
+            return user.uniqueId === deviceUniqueId;
+          });
+          var targetLanguage = phoneUser.language;
+          translateText(comment, targetLanguage).then( /*#__PURE__*/function () {
+            var _ref14 = (0, _asyncToGenerator2["default"])( /*#__PURE__*/_regenerator["default"].mark(function _callee4(result) {
+              return _regenerator["default"].wrap(function _callee4$(_context4) {
+                while (1) {
+                  switch (_context4.prev = _context4.next) {
+                    case 0:
+                      console.log("Emit log, SocketId: ", socketId, " , ", result);
+                      socket.to(socketId).emit("emit-log", {
+                        username: targetPhone.username,
+                        comment: result,
+                        time: time
+                      });
 
-                  case 2:
-                  case "end":
-                    return _context4.stop();
+                    case 2:
+                    case "end":
+                      return _context4.stop();
+                  }
                 }
-              }
-            }, _callee4);
-          }));
+              }, _callee4);
+            }));
 
-          return function (_x7) {
-            return _ref14.apply(this, arguments);
-          };
-        }())["catch"](function (err) {
-          console.log(err);
+            return function (_x7) {
+              return _ref14.apply(this, arguments);
+            };
+          }())["catch"](function (err) {
+            console.log(err);
+          });
+        };
+
+        for (var i = 0; i < deviceUsers.length; i++) {
+          _loop(i);
+        }
+      } catch (error) {
+        (0, _utils.emitErrorToDevice)(socket, {
+          targetId: targetDevice.socketId,
+          errorMsg: "エラーが発生しました。"
         });
-      };
-
-      for (var i = 0; i < deviceUsers.length; i++) {
-        _loop(i);
       }
-    } catch (error) {
-      (0, _utils.emitErrorToDevice)(socket, {
-        targetId: targetDevice.socketId,
-        errorMsg: "エラーが発生しました。"
-      });
+    } else {
+      return;
     }
   }); // ジェスチャー検知
 
@@ -634,17 +655,22 @@ wsServer.on("connection", function (socket) {
     var targetDevice = (0, _utils.getDeviceByUniqueId)(deviceUsers, uniqueId);
     var targetPhone = (0, _utils.getPhoneByUniqueId)(phoneUsers, uniqueId);
 
-    try {
-      wsServer.emit("emit-reaction", {
-        username: targetPhone.username,
-        reactionId: reactionId,
-        time: time
-      });
-    } catch (e) {
-      (0, _utils.emitErrorToDevice)(socket, {
-        targetId: targetDevice.socketId,
-        errorMsg: "エラーが発生しました。"
-      });
+    if (targetDevice !== undefined && targetPhone !== undefined) {
+      try {
+        console.log("Emit: emit-reaction");
+        wsServer.emit("emit-reaction", {
+          username: targetPhone.username,
+          reactionId: reactionId,
+          time: time
+        });
+      } catch (e) {
+        (0, _utils.emitErrorToDevice)(socket, {
+          targetId: targetDevice.socketId,
+          errorMsg: "エラーが発生しました。"
+        });
+      }
+    } else {
+      return;
     }
   });
 });
